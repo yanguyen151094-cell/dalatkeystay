@@ -84,7 +84,7 @@ export default function Footer() {
                 <div className="w-4 h-4 flex items-center justify-center mt-0.5">
                   <i className="ri-map-pin-line text-amber-400"></i>
                 </div>
-                <span>30 Hẻm 6 Mai Xuân Thưởng, Phường 8, Đà Lạt, Lâm Đồng</span>
+                <span>Nhà 30 Hẻm 6 Mai Xuân Thưởng, Phường 8, Đà Lạt, Lâm Đồng</span>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
