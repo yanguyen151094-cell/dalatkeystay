@@ -13,10 +13,10 @@ const contactInfo = [
   {
     icon: 'ri-phone-line',
     title: 'Hotline',
-    detail: '0263 382 2888',
+    detail: '0982.947.645',s
     sub: 'Hỗ trợ 8:00 – 20:00 hàng ngày',
     color: 'bg-amber-50 text-amber-600',
-    href: 'tel:02633822888',
+    href: 'tel:0982.947.645',
   },
   {
     icon: 'ri-mail-line',
