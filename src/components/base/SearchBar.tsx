@@ -20,7 +20,9 @@ export default function SearchBar({ variant = 'hero' }: SearchBarProps) {
 
   const priceRanges = [
     { value: '', label: 'Tất cả mức giá' },
-    { value: '0-5', label: 'Dưới 5 triệu/tháng' },
+    { value: '0-1', label: 'Dưới 1 triệu/tháng' },
+    { value: '1-2', label: 'Dưới 2 triệu/tháng' },
+    { value: '2-5', label: 'Dưới 5 triệu/tháng' },
     { value: '5-10', label: '5 – 10 triệu/tháng' },
     { value: '10-20', label: '10 – 20 triệu/tháng' },
     { value: '20+', label: 'Trên 20 triệu/tháng' },
