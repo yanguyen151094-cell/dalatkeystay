@@ -13,7 +13,7 @@ const contactInfo = [
   {
     icon: 'ri-phone-line',
     title: 'Hotline',
-    detail: '0982.947.645',s
+    detail: '0982.947.645',
     sub: 'Hỗ trợ 8:00 – 20:00 hàng ngày',
     color: 'bg-amber-50 text-amber-600',
     href: 'tel:0982.947.645',
