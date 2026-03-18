@@ -29,8 +29,8 @@ const contactInfo = [
   {
     icon: 'ri-time-line',
     title: 'Giờ làm việc',
-    detail: '8:00 – 18:00',
-    sub: 'Thứ 2 – Thứ 7 (Chủ nhật nghỉ)',
+    detail: '00:00 – 23:59',
+    sub: 'Thứ 2 – Chủ nhật',
     color: 'bg-stone-100 text-stone-600',
   },
 ];
