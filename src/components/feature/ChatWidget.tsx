@@ -104,7 +104,7 @@ export default function ChatWidget() {
     setLeadSent(true);
     setShowLeadForm(false);
     addBotMessage(
-      `Cảm ơn bạn ${leadForm.name}! ✅\n\nMình đã chuyển thông tin cho nhân viên tư vấn rồi. Bạn sẽ nhận cuộc gọi qua số ${leadForm.phone} trong thời gian sớm nhất!\n\n📞 Hotline hỗ trợ ngay: 0263 382 2888`,
+      `Cảm ơn bạn ${leadForm.name}! ✅\n\nMình đã chuyển thông tin cho nhân viên tư vấn rồi. Bạn sẽ nhận cuộc gọi qua số ${leadForm.phone} trong thời gian sớm nhất!\n\n📞 Hotline hỗ trợ ngay: 0982 947 645`,
       500,
     );
   };

@@ -42,7 +42,7 @@ export function getSmartResponse(message: string): ChatResponse {
   if (contains(message, PRICE_KW)) {
     return {
       type: 'text',
-      text: 'Mức giá tham khảo tại Đà Lạt:\n\n🏡 Homestay: 700k – 2.5 triệu/đêm\n🏠 Nhà nguyên căn: 5 – 25 triệu/tháng\n🏢 Căn hộ cao cấp: 8 – 30 triệu/tháng\n\nGiá thực tế tuỳ khu vực và diện tích. Bạn muốn tư vấn cụ thể hơn không? 😊',
+      text: 'Mức giá tham khảo tại Đà Lạt:\n\n🏡 Homestay: 500k – 2.5 triệu/đêm\n🏠 Nhà nguyên căn: 5 – 25 triệu/tháng\n🏢 Căn hộ cao cấp: 8 – 30 triệu/tháng\n\nGiá thực tế tuỳ khu vực và diện tích. Bạn muốn tư vấn cụ thể hơn không? 😊',
     };
   }
 
@@ -84,13 +84,13 @@ export function getSmartResponse(message: string): ChatResponse {
   if (contains(message, GREETING_KW)) {
     return {
       type: 'text',
-      text: 'Xin chào! 👋 Mình là trợ lý của Đà Lạt Key Stay.\n\nMình có thể giúp bạn:\n🏡 Tìm homestay theo ngày\n🏠 Thuê nhà nguyên căn\n🏢 Căn hộ cao cấp\n💰 Tư vấn giá & khu vực\n\nBạn cần tìm gì tại Đà Lạt?',
+      text: 'Xin chào! 👋 Mình là trợ lý của DaLat Key Stay.\n\nMình có thể giúp bạn:\n🏡 Tìm homestay theo ngày\n🏠 Thuê nhà nguyên căn\n🏢 Căn hộ cao cấp\n💰 Tư vấn giá & khu vực\n\nBạn cần tìm gì tại Đà Lạt?',
     };
   }
 
   return {
     type: 'text',
-    text: 'Cảm ơn bạn đã nhắn tin! Đà Lạt Key Stay có thể hỗ trợ về:\n\n🏡 Homestay & nhà nghỉ theo ngày\n🏠 Nhà nguyên căn dài hạn\n🏢 Căn hộ cao cấp\n💰 Tư vấn giá & khu vực đẹp\n\nBạn cần tư vấn về loại hình nào?',
+    text: 'Cảm ơn bạn đã nhắn tin! DaLat Key Stay có thể hỗ trợ về:\n\n🏡 Homestay & nhà nghỉ theo ngày\n🏠 Nhà nguyên căn dài hạn\n🏢 Căn hộ cao cấp\n💰 Tư vấn giá & khu vực đẹp\n\nBạn cần tư vấn về loại hình nào?',
   };
 }
 
