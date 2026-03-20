@@ -30,20 +30,31 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) {
-        const profile = await fetchAdminProfile(s.user.id);
-        setAdminProfile(profile);
+    const initAuth = async () => {
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        setSession(s);
+        if (s?.user) {
+          const profile = await fetchAdminProfile(s.user.id);
+          setAdminProfile(profile);
+        }
+      } catch (e) {
+        console.error('Auth init error:', e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+    initAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       if (s?.user) {
-        const profile = await fetchAdminProfile(s.user.id);
-        setAdminProfile(profile);
+        try {
+          const profile = await fetchAdminProfile(s.user.id);
+          setAdminProfile(profile);
+        } catch (e) {
+          console.error('Auth state change error:', e);
+        }
       } else {
         setAdminProfile(null);
       }
