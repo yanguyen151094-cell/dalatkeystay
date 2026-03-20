@@ -30,28 +30,46 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+      Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+
     const initAuth = async () => {
       try {
-        const { data: { session: s } } = await supabase.auth.getSession();
-        setSession(s);
-        if (s?.user) {
-          const profile = await fetchAdminProfile(s.user.id);
-          setAdminProfile(profile);
+        const sessionResult = await withTimeout(
+          supabase.auth.getSession(),
+          5000,
+          { data: { session: null }, error: null }
+        );
+        const s = sessionResult.data.session;
+        if (!cancelled) {
+          setSession(s);
+          if (s?.user) {
+            const profile = await withTimeout(
+              fetchAdminProfile(s.user.id),
+              5000,
+              null
+            );
+            if (!cancelled) setAdminProfile(profile);
+          }
         }
       } catch (e) {
         console.error('Auth init error:', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
+
     initAuth();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      if (cancelled) return;
       setSession(s);
       if (s?.user) {
         try {
-          const profile = await fetchAdminProfile(s.user.id);
-          setAdminProfile(profile);
+          const profile = await withTimeout(fetchAdminProfile(s.user.id), 5000, null);
+          if (!cancelled) setAdminProfile(profile);
         } catch (e) {
           console.error('Auth state change error:', e);
         }
@@ -60,7 +78,10 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
