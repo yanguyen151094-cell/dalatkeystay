@@ -24,7 +24,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-stone-400 text-sm leading-relaxed mb-5">
-              Nền tảng bất động sản hàng đầu tại Đà Lạt – kết nối người tìm kiếm với những ngôi nhà lý tưởng giữa thành phố ngàn hoa.
+              Key Stay Đà Lạt – nền tảng cho thuê căn hộ đẹp, homestay lãng mạn và phòng nghỉ cao cấp tại thành phố ngàn hoa. Booking trực tuyến, nhận phòng linh hoạt 24/7.
             </p>
             <div className="flex items-center gap-3">
               {['facebook-circle', 'instagram', 'youtube', 'tiktok'].map((icon) => (
@@ -84,13 +84,13 @@ export default function Footer() {
                 <div className="w-4 h-4 flex items-center justify-center mt-0.5">
                   <i className="ri-map-pin-line text-amber-400"></i>
                 </div>
-                <span>Nhà 30 Hẻm 6 Mai Xuân Thưởng, Phường 8, Đà Lạt, Lâm Đồng</span>
+                <span>4 Nguyễn Thị Minh Khai, Phường 1, Đà Lạt, Lâm Đồng</span>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-phone-line text-amber-400"></i>
                 </div>
-                <a href="tel:0982947645" className="hover:text-amber-400 transition-colors">0982 947 645</a>
+                <a href="tel:02633822888" className="hover:text-amber-400 transition-colors">0263 382 2888</a>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
@@ -102,7 +102,7 @@ export default function Footer() {
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-time-line text-amber-400"></i>
                 </div>
-                <span>00:00 – 23:59, Thứ 2 – Chủ Nhật</span>
+                <span>8:00 – 18:00, Thứ 2 – Thứ 7</span>
               </li>
             </ul>
           </div>
@@ -111,8 +111,8 @@ export default function Footer() {
 
       <div className="border-t border-stone-700">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-stone-500 text-xs">© 2026 DALAT KEY STAY. Bản quyền thuộc về Dalat Key Stay Real Estate.</p>
-          <p className="text-stone-500 text-xs">Chuyên trang bất động sản Đà Lạt cho thuê nhà nguyên căn, homestay &amp; căn hộ.</p>
+          <p className="text-stone-500 text-xs">© 2026 KEY STAY ĐÀ LẠT. Bản quyền thuộc về Key Stay Đà Lạt.</p>
+          <p className="text-stone-500 text-xs">Chuyên trang cho thuê căn hộ Đà Lạt – homestay, phòng đẹp, booking dễ dàng.</p>
         </div>
       </div>
     </footer>
