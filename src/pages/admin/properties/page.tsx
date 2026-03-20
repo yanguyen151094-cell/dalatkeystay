@@ -30,6 +30,7 @@ const AdminProperties = () => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterListingType, setFilterListingType] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -60,7 +61,8 @@ const AdminProperties = () => {
     const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || (p.address || '').toLowerCase().includes(search.toLowerCase());
     const matchType = !filterType || p.type === filterType;
     const matchStatus = !filterStatus || p.status === filterStatus;
-    return matchSearch && matchType && matchStatus;
+    const matchListingType = !filterListingType || (p.listing_type || 'rent') === filterListingType;
+    return matchSearch && matchType && matchStatus && matchListingType;
   });
 
   const fmtPrice = (n: number | null) =>
@@ -87,6 +89,34 @@ const AdminProperties = () => {
             <div className="w-4 h-4 flex items-center justify-center"><i className="ri-add-line text-base" /></div>
             Thêm căn hộ
           </button>
+        </div>
+
+        {/* Listing Type Tabs */}
+        <div className="flex gap-1 mb-5 bg-stone-100 p-1 rounded-xl w-fit">
+          {[
+            { value: '', label: 'Tất cả', count: properties.length },
+            { value: 'rent', label: 'Cho thuê', count: properties.filter(p => (p.listing_type || 'rent') === 'rent').length },
+            { value: 'sale', label: 'Bán', count: properties.filter(p => p.listing_type === 'sale').length },
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setFilterListingType(tab.value)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                filterListingType === tab.value
+                  ? tab.value === 'sale'
+                    ? 'bg-rose-500 text-white'
+                    : 'bg-white text-stone-800 shadow-sm'
+                  : 'text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {tab.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                filterListingType === tab.value
+                  ? tab.value === 'sale' ? 'bg-rose-400/50 text-white' : 'bg-stone-100 text-stone-600'
+                  : 'bg-stone-200 text-stone-500'
+              }`}>{tab.count}</span>
+            </button>
+          ))}
         </div>
 
         {/* Filters */}

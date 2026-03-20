@@ -69,8 +69,21 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
     initAuth();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, s) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (cancelled) return;
+
+      // Ignore token refresh events that aren't actual sign-outs
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(s);
+        return;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setAdminProfile(null);
+        return;
+      }
+
       setSession(s);
       if (s?.user) {
         try {
@@ -79,7 +92,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {
           console.error('Auth state change error:', e);
         }
-      } else {
+      } else if (event !== 'INITIAL_SESSION') {
         setAdminProfile(null);
       }
     });
