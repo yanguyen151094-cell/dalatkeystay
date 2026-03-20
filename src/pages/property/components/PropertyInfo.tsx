@@ -1,7 +1,7 @@
-import type { Property } from '../../../mocks/listings';
+import type { UIProperty } from '../../../lib/propertyUtils';
 
 interface PropertyInfoProps {
-  property: Property;
+  property: UIProperty;
 }
 
 const amenityIcons: Record<string, string> = {

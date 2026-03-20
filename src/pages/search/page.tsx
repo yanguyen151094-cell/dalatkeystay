@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
 import PropertyCard from '../../components/base/PropertyCard';
-import { rentalListings, areas, formatPrice } from '../../mocks/listings';
-import type { Property } from '../../mocks/listings';
+import { areas } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { fetchRentalProperties } from '../../lib/propertyUtils';
 
 const priceRanges = [
   { value: '', label: 'Tất cả mức giá' },
@@ -25,18 +26,27 @@ const sortOptions = [
 
 export default function SearchListings() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [allProperties, setAllProperties] = useState<UIProperty[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedArea, setSelectedArea] = useState(searchParams.get('area') || '');
   const [selectedPrice, setSelectedPrice] = useState(searchParams.get('price') || '');
   const [selectedBedrooms, setSelectedBedrooms] = useState('Tất cả');
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filteredListings, setFilteredListings] = useState<Property[]>(rentalListings);
+  const [filteredListings, setFilteredListings] = useState<UIProperty[]>([]);
 
   useEffect(() => {
-    let result = [...rentalListings];
+    fetchRentalProperties().then((data) => {
+      setAllProperties(data);
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    let result = [...allProperties];
 
     if (selectedArea) {
-      result = result.filter((p) => p.area === selectedArea);
+      result = result.filter((p) => p.area === selectedArea || (p.address || '').includes(selectedArea));
     }
 
     if (selectedPrice === '0-5') {
@@ -63,7 +73,7 @@ export default function SearchListings() {
     if (sortBy === 'size-desc') result.sort((a, b) => b.size - a.size);
 
     setFilteredListings(result);
-  }, [selectedArea, selectedPrice, selectedBedrooms, sortBy]);
+  }, [allProperties, selectedArea, selectedPrice, selectedBedrooms, sortBy]);
 
   const handleAreaChange = (area: string) => {
     setSelectedArea(area);
@@ -211,16 +221,34 @@ export default function SearchListings() {
             </div>
           </div>
 
-          {filteredListings.length === 0 ? (
+          {loading ? (
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                  <div className="h-52 bg-stone-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-3/4" />
+                    <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredListings.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-stone-100 rounded-full">
                 <i className="ri-search-line text-stone-400 text-3xl"></i>
               </div>
-              <p className="text-stone-600 font-medium mb-1">Không tìm thấy kết quả</p>
-              <p className="text-stone-400 text-sm">Thử điều chỉnh bộ lọc để tìm kiếm rộng hơn</p>
-              <button onClick={handleReset} className="mt-4 px-5 py-2 bg-emerald-600 text-white text-sm rounded-lg cursor-pointer hover:bg-emerald-700">
-                Xóa bộ lọc
-              </button>
+              <p className="text-stone-600 font-medium mb-1">
+                {allProperties.length === 0 ? 'Chưa có bất động sản nào' : 'Không tìm thấy kết quả'}
+              </p>
+              <p className="text-stone-400 text-sm">
+                {allProperties.length === 0 ? 'Admin có thể thêm bất động sản tại trang quản lý' : 'Thử điều chỉnh bộ lọc để tìm kiếm rộng hơn'}
+              </p>
+              {allProperties.length > 0 && (
+                <button onClick={handleReset} className="mt-4 px-5 py-2 bg-emerald-600 text-white text-sm rounded-lg cursor-pointer hover:bg-emerald-700">
+                  Xóa bộ lọc
+                </button>
+              )}
             </div>
           ) : (
             <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>

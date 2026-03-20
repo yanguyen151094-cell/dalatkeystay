@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
 import PropertyCard from '../../components/base/PropertyCard';
-import { homestayListings, areas, formatPrice } from '../../mocks/listings';
+import { areas } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { fetchHomestayProperties } from '../../lib/propertyUtils';
 
 const amenityFilters = ['WiFi', 'Bếp đầy đủ', 'Lò sưởi', 'BBQ', 'View hồ', 'View núi', 'Sân vườn', 'Hồ bơi'];
 
 export default function HomestayRentals() {
+  const [allHomestays, setAllHomestays] = useState<UIProperty[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [maxCapacity, setMaxCapacity] = useState('');
   const [sortBy, setSortBy] = useState('default');
+
+  useEffect(() => {
+    fetchHomestayProperties().then((data) => {
+      setAllHomestays(data);
+      setLoading(false);
+    });
+  }, []);
 
   const toggleAmenity = (amenity: string) => {
     setSelectedAmenities((prev) =>
@@ -19,7 +30,7 @@ export default function HomestayRentals() {
     );
   };
 
-  const filtered = homestayListings
+  const filtered = allHomestays
     .filter((p) => (selectedArea ? p.area === selectedArea : true))
     .filter((p) =>
       selectedAmenities.length === 0 ||
@@ -141,13 +152,29 @@ export default function HomestayRentals() {
           </div>
 
           {/* Listings */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                  <div className="h-52 bg-stone-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-3/4" />
+                    <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-amber-50 rounded-full">
                 <i className="ri-home-heart-line text-amber-400 text-3xl"></i>
               </div>
-              <p className="text-stone-600 font-medium">Không tìm thấy homestay phù hợp</p>
-              <p className="text-stone-400 text-sm mt-1">Thử điều chỉnh bộ lọc để có nhiều kết quả hơn</p>
+              <p className="text-stone-600 font-medium">
+                {allHomestays.length === 0 ? 'Chưa có homestay nào được thêm' : 'Không tìm thấy homestay phù hợp'}
+              </p>
+              <p className="text-stone-400 text-sm mt-1">
+                {allHomestays.length === 0 ? 'Admin có thể thêm homestay trong trang quản lý' : 'Thử điều chỉnh bộ lọc để có nhiều kết quả hơn'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

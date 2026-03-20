@@ -11,6 +11,11 @@ const typeLabels: Record<string, string> = {
   room: 'Phòng',
 };
 
+const listingTypeConfig: Record<string, { label: string; className: string }> = {
+  rent: { label: 'Cho thuê', className: 'bg-amber-100 text-amber-700' },
+  sale: { label: 'Bán', className: 'bg-rose-100 text-rose-600' },
+};
+
 const statusConfig: Record<string, { label: string; className: string }> = {
   available: { label: 'Còn trống', className: 'bg-green-100 text-green-700' },
   rented: { label: 'Đang thuê', className: 'bg-amber-100 text-amber-700' },
@@ -60,6 +65,12 @@ const AdminProperties = () => {
 
   const fmtPrice = (n: number | null) =>
     n ? new Intl.NumberFormat('vi-VN').format(n) + 'đ' : '—';
+
+  const fmtSalePrice = (n: number | null) => {
+    if (!n) return '—';
+    if (n >= 1000000000) return `${(n / 1000000000).toFixed(2).replace(/\.?0+$/, '')} tỷ`;
+    return `${(n / 1000000).toFixed(0)} triệu`;
+  };
 
   return (
     <AdminLayout>
@@ -127,8 +138,8 @@ const AdminProperties = () => {
                   <tr className="border-b border-stone-100 bg-stone-50">
                     <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Căn hộ</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Loại</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Giá / đêm</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Giá / tháng</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Giao dịch</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Giá</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Trạng thái</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Nổi bật</th>
                     <th className="text-left px-5 py-3 text-xs font-medium text-stone-500 uppercase tracking-wide">Thao tác</th>
@@ -153,8 +164,17 @@ const AdminProperties = () => {
                         </div>
                       </td>
                       <td className="px-5 py-3 text-stone-600">{typeLabels[p.type]}</td>
-                      <td className="px-5 py-3 text-stone-700">{fmtPrice(p.price_per_night)}</td>
-                      <td className="px-5 py-3 text-stone-700">{fmtPrice(p.price_per_month)}</td>
+                      <td className="px-5 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${(listingTypeConfig[p.listing_type || 'rent'] || listingTypeConfig.rent).className}`}>
+                          {(listingTypeConfig[p.listing_type || 'rent'] || listingTypeConfig.rent).label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-stone-700">
+                        {p.listing_type === 'sale'
+                          ? fmtSalePrice(p.sale_price)
+                          : <span className="text-xs">{fmtPrice(p.price_per_night) !== '—' ? `${fmtPrice(p.price_per_night)}/đêm` : ''}{p.price_per_night && p.price_per_month ? ' · ' : ''}{fmtPrice(p.price_per_month) !== '—' ? `${fmtPrice(p.price_per_month)}/tháng` : ''}{!p.price_per_night && !p.price_per_month ? '—' : ''}</span>
+                        }
+                      </td>
                       <td className="px-5 py-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[p.status].className}`}>
                           {statusConfig[p.status].label}

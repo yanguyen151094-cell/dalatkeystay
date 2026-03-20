@@ -1,33 +1,74 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
 import PropertyCard from '../../components/base/PropertyCard';
 import ContactCard from './components/ContactCard';
 import PropertyInfo from './components/PropertyInfo';
 import ImageGallery from './components/ImageGallery';
-import { rentalListings, homestayListings, apartmentListings, formatPrice } from '../../mocks/listings';
-
-const allListings = [...rentalListings, ...homestayListings, ...apartmentListings];
+import type { UIProperty } from '../../lib/propertyUtils';
+import {
+  fetchPropertyById,
+  fetchRentalProperties,
+  fetchHomestayProperties,
+  fetchSaleProperties,
+  formatUIPrice,
+} from '../../lib/propertyUtils';
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  const property = allListings.find((p) => p.id === Number(id));
+  const [property, setProperty] = useState<UIProperty | null>(null);
+  const [similar, setSimilar] = useState<UIProperty[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!property) {
+    if (!id) {
       navigate('/');
+      return;
     }
     window.scrollTo(0, 0);
-  }, [id, property, navigate]);
+
+    const load = async () => {
+      setLoading(true);
+      const found = await fetchPropertyById(id);
+      if (!found) {
+        navigate('/');
+        return;
+      }
+      setProperty(found);
+
+      let simFetch: Promise<UIProperty[]>;
+      if (found.type === 'homestay') {
+        simFetch = fetchHomestayProperties(6);
+      } else if (found.type === 'apartment') {
+        simFetch = fetchSaleProperties(6);
+      } else {
+        simFetch = fetchRentalProperties(6);
+      }
+      const simData = await simFetch;
+      setSimilar(simData.filter((p) => p.id !== found.id).slice(0, 3));
+      setLoading(false);
+    };
+
+    load();
+  }, [id, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <Navbar />
+        <div className="pt-20 flex items-center justify-center min-h-96">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-stone-500 text-sm">Đang tải thông tin...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!property) return null;
-
-  const similar = allListings
-    .filter((p) => p.type === property.type && p.id !== property.id)
-    .slice(0, 3);
 
   const typeLabel = {
     rental: 'Cho thuê nhà nguyên căn',
@@ -49,7 +90,7 @@ export default function PropertyDetail() {
 
   const galleryImages = property.images && property.images.length > 0
     ? property.images
-    : [property.image];
+    : [property.image].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -85,22 +126,21 @@ export default function PropertyDetail() {
         </div>
 
         {/* Image Gallery */}
-        <div className="max-w-7xl mx-auto px-6 pb-8 relative">
-          <ImageGallery images={galleryImages} title={property.title} />
-        </div>
+        {galleryImages.length > 0 && (
+          <div className="max-w-7xl mx-auto px-6 pb-8 relative">
+            <ImageGallery images={galleryImages} title={property.title} />
+          </div>
+        )}
 
         {/* Main content */}
         <div className="max-w-7xl mx-auto px-6 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            {/* Left: Details */}
             <div className="lg:col-span-2">
               <PropertyInfo property={property} />
             </div>
-
-            {/* Right: Contact */}
             <div className="lg:col-span-1">
               <ContactCard
-                price={formatPrice(property.price, property.type)}
+                price={formatUIPrice(property.price, property.type)}
                 priceUnit={property.priceUnit}
               />
             </div>

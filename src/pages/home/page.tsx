@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
 import SearchBar from '../../components/base/SearchBar';
 import PropertyCard from '../../components/base/PropertyCard';
-import { rentalListings, homestayListings, apartmentListings } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { fetchRentalProperties, fetchHomestayProperties, fetchSaleProperties } from '../../lib/propertyUtils';
 
 const stats = [
   { value: '200+', label: 'Căn hộ cho thuê', icon: 'ri-building-2-line' },
@@ -35,11 +37,27 @@ const whyUs = [
   },
 ];
 
-const featuredRentals = rentalListings.slice(0, 9);
-const featuredHomestays = homestayListings.slice(0, 9);
-const featuredApartments = apartmentListings.slice(0, 9);
-
 export default function Home() {
+  const [rentals, setRentals] = useState<UIProperty[]>([]);
+  const [homestays, setHomestays] = useState<UIProperty[]>([]);
+  const [apartments, setApartments] = useState<UIProperty[]>([]);
+  const [homeLoading, setHomeLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [r, h, a] = await Promise.all([
+        fetchRentalProperties(9),
+        fetchHomestayProperties(9),
+        fetchSaleProperties(9),
+      ]);
+      setRentals(r);
+      setHomestays(h);
+      setApartments(a);
+      setHomeLoading(false);
+    };
+    load();
+  }, []);
+
   return (
     <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Inter', sans-serif" }}>
       <Navbar />
@@ -129,11 +147,30 @@ export default function Home() {
             Xem tất cả <i className="ri-arrow-right-line"></i>
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
-          {featuredRentals.map((p) => (
-            <PropertyCard key={p.id} property={p} />
-          ))}
-        </div>
+        {homeLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                <div className="h-52 bg-stone-200" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-stone-200 rounded w-3/4" />
+                  <div className="h-3 bg-stone-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : rentals.length === 0 ? (
+          <div className="text-center py-12 text-stone-400">
+            <i className="ri-building-line text-4xl mb-2 block"></i>
+            <p className="text-sm">Chưa có bất động sản cho thuê nào</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
+            {rentals.map((p) => (
+              <PropertyCard key={p.id} property={p} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Homestay Banner */}
@@ -181,11 +218,30 @@ export default function Home() {
             Xem tất cả <i className="ri-arrow-right-line"></i>
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
-          {featuredHomestays.map((p) => (
-            <PropertyCard key={p.id} property={p} />
-          ))}
-        </div>
+        {homeLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                <div className="h-52 bg-stone-200" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-stone-200 rounded w-3/4" />
+                  <div className="h-3 bg-stone-100 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : homestays.length === 0 ? (
+          <div className="text-center py-12 text-stone-400">
+            <i className="ri-home-heart-line text-4xl mb-2 block"></i>
+            <p className="text-sm">Chưa có homestay nào</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
+            {homestays.map((p) => (
+              <PropertyCard key={p.id} property={p} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Apartment Section */}
@@ -205,11 +261,30 @@ export default function Home() {
               Xem tất cả <i className="ri-arrow-right-line"></i>
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
-            {featuredApartments.map((p) => (
-              <PropertyCard key={p.id} property={p} />
-            ))}
-          </div>
+          {homeLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                  <div className="h-52 bg-stone-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-3/4" />
+                    <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : apartments.length === 0 ? (
+            <div className="text-center py-12 text-stone-400">
+              <i className="ri-building-2-line text-4xl mb-2 block"></i>
+              <p className="text-sm">Chưa có căn hộ bán nào</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
+              {apartments.map((p) => (
+                <PropertyCard key={p.id} property={p} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

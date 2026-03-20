@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import type { Property } from '../../mocks/listings';
-import { formatPrice } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { formatUIPrice } from '../../lib/propertyUtils';
 
 interface PropertyCardProps {
-  property: Property;
+  property: UIProperty;
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
@@ -21,15 +21,45 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
   const getDetailPath = () => `/property/${property.id}`;
 
+  const placeholderBg = () => {
+    if (property.type === 'rental') return 'from-emerald-100 to-emerald-200';
+    if (property.type === 'homestay') return 'from-amber-100 to-amber-200';
+    return 'from-rose-100 to-rose-200';
+  };
+
+  const placeholderIcon = () => {
+    if (property.type === 'rental') return 'ri-home-2-line';
+    if (property.type === 'homestay') return 'ri-home-heart-line';
+    return 'ri-building-line';
+  };
+
   return (
     <div className="bg-white rounded-xl overflow-hidden border border-stone-100 hover:border-emerald-200 transition-all duration-300 group cursor-pointer">
       <Link to={getDetailPath()} className="block">
         <div className="relative overflow-hidden h-52">
-          <img
-            src={property.image}
-            alt={property.title}
-            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-          />
+          {property.image ? (
+            <img
+              src={property.image}
+              alt={property.title}
+              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  const placeholder = parent.querySelector('.img-placeholder') as HTMLElement;
+                  if (placeholder) placeholder.style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div
+            className={`img-placeholder w-full h-full bg-gradient-to-br ${placeholderBg()} flex flex-col items-center justify-center gap-2 ${property.image ? 'hidden' : 'flex'}`}
+          >
+            <div className="w-12 h-12 flex items-center justify-center bg-white/60 rounded-xl">
+              <i className={`${placeholderIcon()} text-2xl text-stone-400`}></i>
+            </div>
+            <span className="text-xs text-stone-400">Chưa có ảnh</span>
+          </div>
           <div className="absolute top-3 left-3 flex gap-2">
             <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getTypeBadgeColor()}`}>
               {getTypeLabel()}
@@ -42,7 +72,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </div>
           <div className="absolute bottom-3 right-3">
             <span className="px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-lg text-sm font-bold text-stone-800">
-              {formatPrice(property.price, property.type)}
+              {formatUIPrice(property.price, property.type)}
               <span className="text-xs font-normal text-stone-500">{property.priceUnit}</span>
             </span>
           </div>

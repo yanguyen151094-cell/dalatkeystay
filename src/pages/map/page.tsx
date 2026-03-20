@@ -1,29 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
-import { rentalListings, homestayListings, apartmentListings } from '../../mocks/listings';
-import type { Property } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { fetchAllProperties } from '../../lib/propertyUtils';
+import { formatUIPrice } from '../../lib/propertyUtils';
 
 type MapFilter = 'all' | 'rental' | 'homestay' | 'apartment';
-
-const allProperties = [...rentalListings, ...homestayListings, ...apartmentListings];
-
-const areaCoords: Record<string, { lat: number; lng: number }> = {
-  'Phường 1 - Trung tâm': { lat: 11.9416, lng: 108.4384 },
-  'Phường 2': { lat: 11.9379, lng: 108.4453 },
-  'Phường 3': { lat: 11.9328, lng: 108.4521 },
-  'Phường 4': { lat: 11.9267, lng: 108.4340 },
-  'Phường 5': { lat: 11.9490, lng: 108.4240 },
-  'Phường 6': { lat: 11.9567, lng: 108.4512 },
-  'Phường 7': { lat: 11.9200, lng: 108.4578 },
-  'Phường 8': { lat: 11.9445, lng: 108.4120 },
-  'Phường 9': { lat: 11.9345, lng: 108.4180 },
-  'Phường 10': { lat: 11.9289, lng: 108.4633 },
-  'Phường 11': { lat: 11.9123, lng: 108.4312 },
-  'Phường 12': { lat: 11.9678, lng: 108.4267 },
-  'Xuân Thọ': { lat: 11.9756, lng: 108.4623 },
-  'Lạc Dương': { lat: 12.0456, lng: 108.4789 },
-};
 
 const typeColors: Record<string, string> = {
   rental: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -52,8 +34,17 @@ const areaStats = [
 ];
 
 export default function MapPage() {
+  const [allProperties, setAllProperties] = useState<UIProperty[]>([]);
+  const [loading, setLoading] = useState(true);
   const [mapFilter, setMapFilter] = useState<MapFilter>('all');
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<UIProperty | null>(null);
+
+  useEffect(() => {
+    fetchAllProperties().then((data) => {
+      setAllProperties(data);
+      setLoading(false);
+    });
+  }, []);
 
   const filteredProperties = mapFilter === 'all'
     ? allProperties
@@ -87,9 +78,11 @@ export default function MapPage() {
                 }`}
               >
                 {btn.label}
-                <span className="ml-1.5 text-xs opacity-80">
-                  ({btn.value === 'all' ? allProperties.length : allProperties.filter(p => p.type === btn.value).length})
-                </span>
+                {!loading && (
+                  <span className="ml-1.5 text-xs opacity-80">
+                    ({btn.value === 'all' ? allProperties.length : allProperties.filter((p) => p.type === btn.value).length})
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -117,51 +110,81 @@ export default function MapPage() {
 
             {/* Side Panel */}
             <div className="space-y-4">
-              {/* Properties List */}
               <div className="bg-white rounded-xl border border-stone-100 overflow-hidden">
                 <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-stone-700">
-                    Bất động sản ({filteredProperties.length})
+                    Bất động sản ({loading ? '...' : filteredProperties.length})
                   </h3>
                   <span className="text-xs text-stone-400">Nhấn để xem chi tiết</span>
                 </div>
-                <div className="divide-y divide-stone-50 max-h-80 overflow-y-auto">
-                  {filteredProperties.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedProperty(selectedProperty?.id === p.id ? null : p)}
-                      className={`flex gap-3 p-3 hover:bg-stone-50 cursor-pointer transition-colors ${selectedProperty?.id === p.id ? 'bg-emerald-50' : ''}`}
-                    >
-                      <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={p.image} alt={p.title} className="w-full h-full object-cover object-top" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-stone-800 line-clamp-1">{p.title}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <i className="ri-map-pin-line text-stone-400 text-xs"></i>
-                          <span className="text-xs text-stone-400 truncate">{p.area}</span>
-                        </div>
-                        <div className={`inline-flex mt-1 px-1.5 py-0.5 rounded text-xs border ${typeColors[p.type]}`}>
-                          {typeLabels[p.type]}
+
+                {loading ? (
+                  <div className="p-4 space-y-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex gap-3 animate-pulse">
+                        <div className="w-14 h-14 bg-stone-200 rounded-lg flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-stone-200 rounded w-3/4" />
+                          <div className="h-2 bg-stone-100 rounded w-1/2" />
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-50 max-h-80 overflow-y-auto">
+                    {filteredProperties.length === 0 ? (
+                      <div className="p-6 text-center text-stone-400">
+                        <i className="ri-building-line text-2xl mb-1 block"></i>
+                        <p className="text-xs">Chưa có bất động sản nào</p>
+                      </div>
+                    ) : filteredProperties.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedProperty(selectedProperty?.id === p.id ? null : p)}
+                        className={`flex gap-3 p-3 hover:bg-stone-50 cursor-pointer transition-colors ${selectedProperty?.id === p.id ? 'bg-emerald-50' : ''}`}
+                      >
+                        <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                          {p.image ? (
+                            <img src={p.image} alt={p.title} className="w-full h-full object-cover object-top" />
+                          ) : (
+                            <div className="w-full h-full bg-stone-200 flex items-center justify-center">
+                              <i className="ri-building-line text-stone-400"></i>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-stone-800 line-clamp-1">{p.title}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <i className="ri-map-pin-line text-stone-400 text-xs"></i>
+                            <span className="text-xs text-stone-400 truncate">{p.area}</span>
+                          </div>
+                          <div className={`inline-flex mt-1 px-1.5 py-0.5 rounded text-xs border ${typeColors[p.type]}`}>
+                            {typeLabels[p.type]}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Selected Property Detail */}
               {selectedProperty && (
                 <div className="bg-white rounded-xl border border-emerald-200 overflow-hidden">
-                  <img src={selectedProperty.image} alt={selectedProperty.title} className="w-full h-32 object-cover object-top" />
+                  {selectedProperty.image ? (
+                    <img src={selectedProperty.image} alt={selectedProperty.title} className="w-full h-32 object-cover object-top" />
+                  ) : (
+                    <div className="w-full h-32 bg-stone-200 flex items-center justify-center">
+                      <i className="ri-building-line text-stone-400 text-3xl"></i>
+                    </div>
+                  )}
                   <div className="p-4">
                     <h4 className="font-semibold text-stone-800 text-sm mb-1">{selectedProperty.title}</h4>
                     <p className="text-stone-500 text-xs mb-2">{selectedProperty.address}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-emerald-700 font-bold text-sm">
-                        {selectedProperty.type === 'apartment'
-                          ? `${(selectedProperty.price / 1000000000).toFixed(1)} tỷ`
-                          : `${(selectedProperty.price / 1000000).toFixed(0)} triệu${selectedProperty.priceUnit}`}
+                        {formatUIPrice(selectedProperty.price, selectedProperty.type)}
+                        <span className="text-xs font-normal text-stone-500 ml-0.5">{selectedProperty.priceUnit}</span>
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs border ${typeColors[selectedProperty.type]}`}>
                         {typeLabels[selectedProperty.type]}

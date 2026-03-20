@@ -22,9 +22,11 @@ export interface Property {
   title: string;
   description: string | null;
   type: 'homestay' | 'apartment' | 'villa' | 'room';
+  listing_type: 'rent' | 'sale';
   status: 'available' | 'rented' | 'maintenance' | 'hidden';
   price_per_night: number | null;
   price_per_month: number | null;
+  sale_price: number | null;
   area: number | null;
   bedrooms: number;
   bathrooms: number;
