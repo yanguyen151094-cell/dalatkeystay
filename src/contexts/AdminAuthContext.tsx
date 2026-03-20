@@ -19,12 +19,13 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchAdminProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('admin_profiles')
       .select('*')
       .eq('id', userId)
       .eq('is_active', true)
       .maybeSingle();
+    if (error) console.error('fetchAdminProfile error:', error.message);
     return data as AdminProfile | null;
   };
 
@@ -54,7 +55,11 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
-    if (data.user) {
+    if (data.user && data.session) {
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
       const profile = await fetchAdminProfile(data.user.id);
       if (!profile) {
         await supabase.auth.signOut();
