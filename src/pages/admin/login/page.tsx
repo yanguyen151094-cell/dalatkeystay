@@ -1,15 +1,22 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
 
 const AdminLogin = () => {
-  const { signIn, loading } = useAdminAuth();
+  const { signIn, loading, session, adminProfile } = useAdminAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
+
+  // Redirect nếu đã đăng nhập
+  useEffect(() => {
+    if (!loading && session && adminProfile) {
+      navigate('/admin/dashboard');
+    }
+  }, [loading, session, adminProfile, navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,14 +35,6 @@ const AdminLogin = () => {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-900 via-stone-800 to-amber-950 flex items-center justify-center px-4">

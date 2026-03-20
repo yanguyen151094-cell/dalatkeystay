@@ -18,6 +18,12 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Hard failsafe: force loading=false after 6s no matter what
+  useEffect(() => {
+    const failsafe = setTimeout(() => setLoading(false), 6000);
+    return () => clearTimeout(failsafe);
+  }, []);
+
   const fetchAdminProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from('admin_profiles')
