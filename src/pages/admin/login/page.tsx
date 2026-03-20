@@ -15,13 +15,18 @@ const AdminLogin = () => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
-    const { error: err } = await signIn(email, password);
-    if (err) {
-      setError(err);
-    } else {
-      navigate('/admin/dashboard');
+    try {
+      const { error: err } = await signIn(email, password);
+      if (err) {
+        setError(err);
+      } else {
+        navigate('/admin/dashboard');
+      }
+    } catch {
+      setError('Có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   if (loading) {

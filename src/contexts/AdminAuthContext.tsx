@@ -85,21 +85,34 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    if (data.user && data.session) {
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-      const profile = await fetchAdminProfile(data.user.id);
-      if (!profile) {
-        await supabase.auth.signOut();
-        return { error: 'Tài khoản không có quyền truy cập admin.' };
+    try {
+      const authResult = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 12000)
+        ),
+      ]);
+      const { data, error } = authResult;
+      if (error) return { error: error.message };
+      if (data.user && data.session) {
+        const profile = await Promise.race([
+          fetchAdminProfile(data.user.id),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+        ]);
+        if (!profile) {
+          await supabase.auth.signOut();
+          return { error: 'Tài khoản không có quyền truy cập admin.' };
+        }
+        supabase.from('admin_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
       }
-      await supabase.from('admin_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
+      return { error: null };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '';
+      if (msg === 'CONNECTION_TIMEOUT') {
+        return { error: 'Kết nối quá chậm. Vui lòng kiểm tra kết nối mạng và thử lại.' };
+      }
+      return { error: 'Đã xảy ra lỗi. Vui lòng thử lại.' };
     }
-    return { error: null };
   };
 
   const signOut = async () => {
