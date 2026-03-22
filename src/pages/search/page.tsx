@@ -6,6 +6,7 @@ import PropertyCard from '../../components/base/PropertyCard';
 import { areas } from '../../mocks/listings';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchRentalProperties } from '../../lib/propertyUtils';
+import { useSEO } from '../../hooks/useSEO';
 
 const priceRanges = [
   { value: '', label: 'Tất cả mức giá' },
@@ -34,6 +35,31 @@ export default function SearchListings() {
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filteredListings, setFilteredListings] = useState<UIProperty[]>([]);
+
+  useSEO({
+    title: selectedArea
+      ? `Cho Thuê Nhà Nguyên Căn ${selectedArea} Đà Lạt | Key Stay`
+      : 'Cho Thuê Nhà Nguyên Căn Đà Lạt – Tìm Phòng Đẹp | Key Stay',
+    description: selectedArea
+      ? `Danh sách nhà nguyên căn cho thuê tại ${selectedArea}, Đà Lạt. Giá tốt, check-in linh hoạt, hỗ trợ 24/7 tại Key Stay Đà Lạt.`
+      : 'Tìm nhà nguyên căn cho thuê tại Đà Lạt – lọc theo khu vực, giá cả, số phòng. Hàng trăm bất động sản cho thuê Đà Lạt tại Key Stay.',
+    keywords: 'cho thuê nhà Đà Lạt, nhà nguyên căn Đà Lạt, thuê nhà Đà Lạt giá rẻ, cho thuê phòng Đà Lạt',
+    canonical: '/search',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Cho Thuê Nhà Nguyên Căn Đà Lạt',
+      url: 'https://www.dalatkeystay.vn/search',
+      description: 'Danh sách nhà nguyên căn cho thuê tại Đà Lạt, Lâm Đồng',
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+          { '@type': 'ListItem', position: 2, name: 'Cho thuê nhà', item: 'https://www.dalatkeystay.vn/search' },
+        ],
+      },
+    },
+  });
 
   useEffect(() => {
     fetchRentalProperties().then((data) => {

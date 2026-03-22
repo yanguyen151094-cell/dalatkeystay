@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
+import { useSEO } from '../../hooks/useSEO';
 
 const PHONE = '0982947645';
 
@@ -96,6 +97,37 @@ export default function FAQPage() {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const toggle = (key: string) => setOpenKey((prev) => (prev === key ? null : key));
+
+  useSEO({
+    title: 'Câu Hỏi Thường Gặp – Cho Thuê Nhà & Homestay Đà Lạt | Key Stay',
+    description: 'Giải đáp thắc mắc về cho thuê nhà nguyên căn, homestay và mua bán căn hộ tại Đà Lạt. Đặt cọc, thủ tục, khu vực, giá thuê – Key Stay hỗ trợ tất cả.',
+    keywords: 'câu hỏi thường gặp thuê nhà Đà Lạt, FAQ Key Stay, thắc mắc homestay Đà Lạt, thủ tục thuê nhà Đà Lạt',
+    canonical: '/faq',
+    structuredData: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.flatMap((section) =>
+          section.items.map((faq) => ({
+            '@type': 'Question',
+            name: faq.q,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: faq.a,
+            },
+          }))
+        ),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+          { '@type': 'ListItem', position: 2, name: 'FAQ', item: 'https://www.dalatkeystay.vn/faq' },
+        ],
+      },
+    ],
+  });
 
   return (
     <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Inter', sans-serif" }}>

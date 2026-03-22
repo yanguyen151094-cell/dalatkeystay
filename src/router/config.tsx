@@ -8,6 +8,8 @@ import MapPage from "../pages/map/page";
 import Contact from "../pages/contact/page";
 import PropertyDetail from "../pages/property/page";
 import FAQPage from "../pages/faq/page";
+import BlogPage from "../pages/blog/page";
+import BlogDetailPage from "../pages/blog-detail/page";
 import AdminLogin from "../pages/admin/login/page";
 import AdminRegister from "../pages/admin/register/page";
 import AdminDashboard from "../pages/admin/dashboard/page";
@@ -18,6 +20,7 @@ import AdminAccounts from "../pages/admin/accounts/page";
 import AdminContent from "../pages/admin/content/page";
 import AdminMedia from "../pages/admin/media/page";
 import AdminRevenue from "../pages/admin/revenue/page";
+import AdminBlog from "../pages/admin/blog/page";
 import ProtectedAdminRoute from "../pages/admin/components/ProtectedAdminRoute";
 
 const routes: RouteObject[] = [
@@ -29,6 +32,8 @@ const routes: RouteObject[] = [
   { path: "/contact", element: <Contact /> },
   { path: "/property/:id", element: <PropertyDetail /> },
   { path: "/faq", element: <FAQPage /> },
+  { path: "/blog", element: <BlogPage /> },
+  { path: "/blog/:slug", element: <BlogDetailPage /> },
   // Admin routes
   { path: "/admin/login", element: <AdminLogin /> },
   { path: "/admin/register", element: <AdminRegister /> },
@@ -61,6 +66,14 @@ const routes: RouteObject[] = [
     element: (
       <ProtectedAdminRoute>
         <AdminTenants />
+      </ProtectedAdminRoute>
+    ),
+  },
+  {
+    path: "/admin/blog",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminBlog />
       </ProtectedAdminRoute>
     ),
   },

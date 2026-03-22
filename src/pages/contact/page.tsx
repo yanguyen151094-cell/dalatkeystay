@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
+import { useSEO } from '../../hooks/useSEO';
 
 const contactInfo = [
   {
@@ -41,6 +42,58 @@ export default function Contact() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
   const [charCount, setCharCount] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useSEO({
+    title: 'Liên Hệ Key Stay Đà Lạt – Tư Vấn Cho Thuê Nhà & Homestay Đà Lạt',
+    description: 'Liên hệ Key Stay Đà Lạt để được tư vấn thuê nhà, homestay và căn hộ tại Đà Lạt. Hotline: 0982947645 – hỗ trợ 8:00–20:00 hàng ngày.',
+    keywords: 'liên hệ Key Stay Đà Lạt, tư vấn thuê nhà Đà Lạt, hotline Key Stay, booking Đà Lạt',
+    canonical: '/contact',
+    structuredData: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ContactPage',
+        name: 'Liên Hệ Key Stay Đà Lạt',
+        url: 'https://www.dalatkeystay.vn/contact',
+        breadcrumb: {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+            { '@type': 'ListItem', position: 2, name: 'Liên hệ', item: 'https://www.dalatkeystay.vn/contact' },
+          ],
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: 'Key Stay Đà Lạt',
+        url: 'https://www.dalatkeystay.vn',
+        telephone: '+84982947645',
+        email: 'info@dalatkeystay.vn',
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: '4 Nguyễn Thị Minh Khai, Phường 1',
+          addressLocality: 'Đà Lạt',
+          addressRegion: 'Lâm Đồng',
+          postalCode: '670000',
+          addressCountry: 'VN',
+        },
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: '11.9404',
+          longitude: '108.4583',
+        },
+        openingHoursSpecification: [
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            opens: '08:00',
+            closes: '20:00',
+          },
+        ],
+        hasMap: 'https://www.google.com/maps/place/Phường+1,+Đà+Lạt',
+      },
+    ],
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -6,6 +6,7 @@ import SearchBar from '../../components/base/SearchBar';
 import PropertyCard from '../../components/base/PropertyCard';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchRentalProperties, fetchHomestayProperties, fetchSaleProperties } from '../../lib/propertyUtils';
+import { useSEO } from '../../hooks/useSEO';
 
 const stats = [
   { value: '200+', label: 'Căn hộ cho thuê', icon: 'ri-building-2-line' },
@@ -42,6 +43,27 @@ export default function Home() {
   const [homestays, setHomestays] = useState<UIProperty[]>([]);
   const [apartments, setApartments] = useState<UIProperty[]>([]);
   const [homeLoading, setHomeLoading] = useState(true);
+
+  useSEO({
+    title: 'Key Stay Đà Lạt – Cho Thuê Căn Hộ, Homestay & Phòng Đẹp Đà Lạt',
+    description: 'Key Stay Đà Lạt – cho thuê căn hộ đẹp, homestay lãng mạn, phòng nghỉ cao cấp tại Đà Lạt, Lâm Đồng. Booking trực tuyến nhanh chóng, giá tốt, hỗ trợ 24/7.',
+    keywords: 'cho thuê căn hộ Đà Lạt, homestay Đà Lạt đẹp, Key Stay Đà Lạt, phòng nghỉ Đà Lạt, booking Đà Lạt',
+    canonical: '/',
+    ogImage: 'https://readdy.ai/api/search-image?query=Dalat%20Vietnam%20aerial%20mountain%20pine%20forest%20city%20landscape%20beautiful&width=1200&height=630&seq=og1&orientation=landscape',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Key Stay Đà Lạt – Trang Chủ',
+      url: 'https://www.dalatkeystay.vn/',
+      description: 'Cho thuê căn hộ, homestay lãng mạn và phòng nghỉ đẹp tại Đà Lạt',
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+        ],
+      },
+    },
+  });
 
   useEffect(() => {
     const load = async () => {

@@ -6,6 +6,7 @@ import PropertyCard from '../../components/base/PropertyCard';
 import { areas } from '../../mocks/listings';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchHomestayProperties } from '../../lib/propertyUtils';
+import { useSEO } from '../../hooks/useSEO';
 
 const amenityFilters = ['WiFi', 'Bếp đầy đủ', 'Lò sưởi', 'BBQ', 'View hồ', 'View núi', 'Sân vườn', 'Hồ bơi'];
 
@@ -16,6 +17,28 @@ export default function HomestayRentals() {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [maxCapacity, setMaxCapacity] = useState('');
   const [sortBy, setSortBy] = useState('default');
+
+  useSEO({
+    title: 'Homestay Đà Lạt Đẹp – Homestay Lãng Mạn Cho Thuê Đà Lạt | Key Stay',
+    description: 'Danh sách homestay cho thuê tại Đà Lạt lãng mạn, view núi đẹp, giá tốt. Đặt homestay Đà Lạt trực tuyến, nhận phòng linh hoạt 24/7 tại Key Stay.',
+    keywords: 'homestay Đà Lạt đẹp, homestay lãng mạn Đà Lạt, thuê homestay Đà Lạt, homestay view núi Đà Lạt',
+    canonical: '/homestay',
+    ogImage: 'https://readdy.ai/api/search-image?query=stunning%20collection%20of%20Dalat%20homestays%20romantic%20cottages%20cozy%20wooden%20houses%20surrounded%20by%20flower%20gardens%20pine%20trees%20morning%20mist%20fairy%20lights%20magical%20atmosphere%20Vietnamese%20highland&width=1200&height=630&seq=hs-hero&orientation=landscape',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Homestay Đà Lạt Đẹp | Key Stay',
+      url: 'https://www.dalatkeystay.vn/homestay',
+      description: 'Danh sách homestay cho thuê lãng mạn tại Đà Lạt, Lâm Đồng',
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+          { '@type': 'ListItem', position: 2, name: 'Homestay Đà Lạt', item: 'https://www.dalatkeystay.vn/homestay' },
+        ],
+      },
+    },
+  });
 
   useEffect(() => {
     fetchHomestayProperties().then((data) => {

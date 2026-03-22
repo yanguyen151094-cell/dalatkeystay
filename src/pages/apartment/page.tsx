@@ -5,6 +5,7 @@ import PropertyCard from '../../components/base/PropertyCard';
 import { areas } from '../../mocks/listings';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchSaleProperties } from '../../lib/propertyUtils';
+import { useSEO } from '../../hooks/useSEO';
 
 const priceRanges = [
   { value: '', label: 'Tất cả mức giá' },
@@ -42,6 +43,28 @@ export default function ApartmentSales() {
   const [selectedPrice, setSelectedPrice] = useState('');
   const [selectedBedrooms, setSelectedBedrooms] = useState('');
   const [sortBy, setSortBy] = useState('default');
+
+  useSEO({
+    title: 'Mua Bán Căn Hộ Đà Lạt – Căn Hộ Đang Bán Đà Lạt | Key Stay',
+    description: 'Danh sách căn hộ mua bán tại Đà Lạt – đầu tư sinh lời, an cư lý tưởng. Pháp lý minh bạch, hỗ trợ vay ngân hàng, tư vấn miễn phí tại Key Stay.',
+    keywords: 'mua bán căn hộ Đà Lạt, căn hộ Đà Lạt giá tốt, đầu tư bất động sản Đà Lạt, căn hộ bán Đà Lạt',
+    canonical: '/apartment',
+    ogImage: 'https://readdy.ai/api/search-image?query=luxury%20apartment%20buildings%20in%20Dalat%20Vietnam%20modern%20high%20rise%20residential%20towers%20pine%20tree%20mountain%20backdrop%20morning%20light%20prestigious%20real%20estate%20development%20skyline&width=1200&height=630&seq=apt-hero&orientation=landscape',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Mua Bán Căn Hộ Đà Lạt | Key Stay',
+      url: 'https://www.dalatkeystay.vn/apartment',
+      description: 'Danh sách căn hộ đang bán tại Đà Lạt, Lâm Đồng',
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: 'https://www.dalatkeystay.vn/' },
+          { '@type': 'ListItem', position: 2, name: 'Mua bán căn hộ', item: 'https://www.dalatkeystay.vn/apartment' },
+        ],
+      },
+    },
+  });
 
   useEffect(() => {
     fetchSaleProperties().then((data) => {

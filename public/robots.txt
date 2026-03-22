@@ -1,4 +1,18 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dalatkeystay.site/sitemap.xml
+# Disallow admin pages from crawling
+Disallow: /admin/
+Disallow: /admin/login
+Disallow: /admin/register
+Disallow: /admin/dashboard
+Disallow: /admin/properties
+Disallow: /admin/bookings
+Disallow: /admin/tenants
+Disallow: /admin/accounts
+Disallow: /admin/content
+Disallow: /admin/media
+Disallow: /admin/revenue
+
+# Sitemap
+Sitemap: https://www.dalatkeystay.vn/sitemap.xml

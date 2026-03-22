@@ -6,7 +6,7 @@ const navLinks = [
   { label: 'Tìm Kiếm', path: '/search' },
   { label: 'Homestay', path: '/homestay' },
   { label: 'Mua Bán Căn Hộ', path: '/apartment' },
-  { label: 'Bản Đồ', path: '/map' },
+  { label: 'Blog', path: '/blog' },
   { label: 'Liên Hệ', path: '/contact' },
 ];
 

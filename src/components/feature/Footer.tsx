@@ -47,6 +47,7 @@ export default function Footer() {
                 { label: 'Cho Thuê Homestay', path: '/homestay' },
                 { label: 'Mua Bán Căn Hộ', path: '/apartment' },
                 { label: 'Bản Đồ Bất Động Sản', path: '/map' },
+                { label: 'Blog & Tin Tức', path: '/blog' },
                 { label: 'Câu Hỏi Thường Gặp', path: '/faq' },
               ].map((item) => (
                 <li key={item.path}>

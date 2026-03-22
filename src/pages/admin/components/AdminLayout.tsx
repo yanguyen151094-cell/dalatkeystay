@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { path: '/admin/properties', icon: 'ri-building-line', label: 'Căn hộ / Phòng' },
   { path: '/admin/bookings', icon: 'ri-calendar-check-line', label: 'Booking' },
   { path: '/admin/tenants', icon: 'ri-group-line', label: 'Khách thuê' },
+  { path: '/admin/blog', icon: 'ri-article-line', label: 'Quản lý Blog' },
   { path: '/admin/media', icon: 'ri-image-2-line', label: 'Hình ảnh & Banner' },
   { path: '/admin/revenue', icon: 'ri-line-chart-line', label: 'Doanh thu' },
   { path: '/admin/content', icon: 'ri-edit-2-line', label: 'Nội dung website' },
