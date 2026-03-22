@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
-import SalePropertyCard from './components/SalePropertyCard';
-import { supabase } from '../../lib/supabase';
-import type { Property } from '../../lib/supabase';
+import PropertyCard from '../../components/base/PropertyCard';
+import { areas } from '../../mocks/listings';
+import type { UIProperty } from '../../lib/propertyUtils';
+import { fetchSaleProperties } from '../../lib/propertyUtils';
 
 const priceRanges = [
   { value: '', label: 'Tất cả mức giá' },
@@ -11,14 +12,6 @@ const priceRanges = [
   { value: '1-2', label: '1 – 2 tỷ' },
   { value: '2-4', label: '2 – 4 tỷ' },
   { value: '4+', label: 'Trên 4 tỷ' },
-];
-
-const typeOptions = [
-  { value: '', label: 'Tất cả loại' },
-  { value: 'apartment', label: 'Căn hộ' },
-  { value: 'villa', label: 'Villa' },
-  { value: 'homestay', label: 'Homestay' },
-  { value: 'room', label: 'Phòng' },
 ];
 
 const investHighlights = [
@@ -43,39 +36,29 @@ const investHighlights = [
 ];
 
 export default function ApartmentSales() {
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [properties, setProperties] = useState<UIProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedPrice, setSelectedPrice] = useState('');
   const [selectedBedrooms, setSelectedBedrooms] = useState('');
-  const [selectedType, setSelectedType] = useState('');
   const [sortBy, setSortBy] = useState('default');
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('listing_type', 'sale')
-        .neq('status', 'hidden')
-        .order('created_at', { ascending: false });
-      setProperties((data as Property[]) || []);
+    fetchSaleProperties().then((data) => {
+      setProperties(data);
       setLoading(false);
-    };
-    fetchProperties();
+    });
   }, []);
 
   const filtered = properties
-    .filter(p => (selectedArea ? p.district === selectedArea || (p.address || '').includes(selectedArea) : true))
-    .filter(p => (selectedType ? p.type === selectedType : true))
+    .filter(p => (selectedArea ? p.area === selectedArea || (p.address || '').includes(selectedArea) : true))
     .filter(p => {
       if (!selectedBedrooms) return true;
       if (selectedBedrooms === '4+') return p.bedrooms >= 4;
       return p.bedrooms === parseInt(selectedBedrooms);
     })
     .filter(p => {
-      const price = p.sale_price || 0;
+      const price = p.price;
       const billion = price / 1000000000;
       if (selectedPrice === '0-1') return billion < 1;
       if (selectedPrice === '1-2') return billion >= 1 && billion < 2;
@@ -84,16 +67,14 @@ export default function ApartmentSales() {
       return true;
     })
     .sort((a, b) => {
-      const aPrice = a.sale_price || 0;
-      const bPrice = b.sale_price || 0;
-      if (sortBy === 'price-asc') return aPrice - bPrice;
-      if (sortBy === 'price-desc') return bPrice - aPrice;
-      if (sortBy === 'size-desc') return (b.area || 0) - (a.area || 0);
-      if (sortBy === 'featured') return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+      if (sortBy === 'price-asc') return a.price - b.price;
+      if (sortBy === 'price-desc') return b.price - a.price;
+      if (sortBy === 'size-desc') return (b.size || 0) - (a.size || 0);
+      if (sortBy === 'featured') return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       return 0;
     });
 
-  const hasFilter = !!(selectedArea || selectedPrice || selectedBedrooms || selectedType);
+  const hasFilter = !!(selectedArea || selectedPrice || selectedBedrooms);
 
   return (
     <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -146,14 +127,14 @@ export default function ApartmentSales() {
           <div className="bg-white rounded-xl border border-stone-100 p-5 mb-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
-                <label className="block text-xs font-medium text-stone-500 mb-1.5">Loại hình</label>
+                <label className="block text-xs font-medium text-stone-500 mb-1.5">Khu vực</label>
                 <select
-                  value={selectedType}
-                  onChange={e => setSelectedType(e.target.value)}
+                  value={selectedArea}
+                  onChange={e => setSelectedArea(e.target.value)}
                   className="w-full px-3 py-2.5 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400 cursor-pointer"
                 >
-                  {typeOptions.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                  {areas.map(a => (
+                    <option key={a} value={a === 'Tất cả khu vực' ? '' : a}>{a}</option>
                   ))}
                 </select>
               </div>
@@ -200,13 +181,33 @@ export default function ApartmentSales() {
               {hasFilter && (
                 <div className="flex items-end">
                   <button
-                    onClick={() => { setSelectedArea(''); setSelectedPrice(''); setSelectedBedrooms(''); setSelectedType(''); setSortBy('default'); }}
+                    onClick={() => { setSelectedArea(''); setSelectedPrice(''); setSelectedBedrooms(''); setSortBy('default'); }}
                     className="w-full px-3 py-2.5 border border-rose-200 text-rose-500 rounded-lg text-sm hover:bg-rose-50 transition-colors cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
                     <i className="ri-refresh-line" /> Xóa bộ lọc
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Area quick tags */}
+            <div className="pt-3 mt-3 border-t border-stone-100">
+              <p className="text-xs text-stone-500 mb-2">Khu vực nhanh:</p>
+              <div className="flex flex-wrap gap-2">
+                {['Phường 1 - Trung tâm', 'Phường 2', 'Phường 4', 'Phường 7', 'Phường 9', 'Phường 10', 'Nam Ban', 'Lạc Dương'].map(area => (
+                  <button
+                    key={area}
+                    onClick={() => setSelectedArea(selectedArea === area ? '' : area)}
+                    className={`px-3 py-1 rounded-full text-xs border transition-all cursor-pointer whitespace-nowrap ${
+                      selectedArea === area
+                        ? 'bg-rose-500 text-white border-rose-500'
+                        : 'border-stone-200 text-stone-600 hover:border-rose-400 hover:text-rose-600'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -215,30 +216,36 @@ export default function ApartmentSales() {
             <div className="flex items-center justify-between mb-5">
               <p className="text-stone-600 text-sm">
                 <strong className="text-stone-800">{filtered.length}</strong> bất động sản đang bán
+                {selectedArea && <span> tại <strong className="text-rose-600">{selectedArea}</strong></span>}
               </p>
             </div>
           )}
 
           {/* Content */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-rose-400 border-t-transparent rounded-full animate-spin" />
-                <p className="text-stone-500 text-sm">Đang tải dữ liệu...</p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-stone-100 overflow-hidden animate-pulse">
+                  <div className="h-52 bg-stone-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-3/4" />
+                    <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 bg-rose-50 rounded-full">
                 <i className="ri-building-line text-rose-300 text-3xl" />
               </div>
-              <p className="text-stone-600 font-medium mb-1">Chưa có bất động sản nào đang bán</p>
-              <p className="text-stone-400 text-sm">Admin có thể thêm căn hộ bán tại trang quản lý</p>
+              <p className="text-stone-600 font-medium mb-1">Không tìm thấy bất động sản phù hợp</p>
+              <p className="text-stone-400 text-sm">Thử điều chỉnh bộ lọc để có nhiều kết quả hơn</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-product-shop>
               {filtered.map(p => (
-                <SalePropertyCard key={p.id} property={p} />
+                <PropertyCard key={p.id} property={p} />
               ))}
             </div>
           )}

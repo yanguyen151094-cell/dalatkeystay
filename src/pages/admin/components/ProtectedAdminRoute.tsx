@@ -10,52 +10,72 @@ interface ProtectedAdminRouteProps {
 const ProtectedAdminRoute = ({ children, requireSuperAdmin }: ProtectedAdminRouteProps) => {
   const { session, adminProfile, loading, isSuperAdmin } = useAdminAuth();
   const navigate = useNavigate();
-  // Track how long we've been in session-but-no-profile state
-  const profileWaitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep refs in sync with latest values to avoid stale closures in setTimeout
+  const sessionRef = useRef(session);
+  const adminProfileRef = useRef(adminProfile);
+  sessionRef.current = session;
+  adminProfileRef.current = adminProfile;
+
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearRedirectTimer = () => {
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
-    if (loading) return;
+    // Still loading initial auth → wait
+    if (loading) {
+      clearRedirectTimer();
+      return;
+    }
 
     // No session at all → redirect immediately
     if (!session) {
+      clearRedirectTimer();
       navigate('/admin/login', { replace: true });
       return;
     }
 
-    // Has session but profile not loaded yet → wait a bit before giving up
-    // This handles the race condition where token refreshes before profile fetches
+    // Has session but profile not yet loaded → start a generous timeout
+    // Using refs inside callback avoids stale closure bug
     if (session && !adminProfile) {
-      if (profileWaitRef.current) clearTimeout(profileWaitRef.current);
-      profileWaitRef.current = setTimeout(() => {
-        // After 4s if still no profile, then redirect
-        if (!adminProfile) {
-          navigate('/admin/login', { replace: true });
-        }
-      }, 4000);
+      if (!redirectTimerRef.current) {
+        redirectTimerRef.current = setTimeout(() => {
+          redirectTimerRef.current = null;
+          // Use ref to get the LATEST value at the time timeout fires
+          if (!adminProfileRef.current) {
+            navigate('/admin/login', { replace: true });
+          }
+        }, 6000);
+      }
       return;
     }
 
-    // Has both session and profile
-    if (profileWaitRef.current) {
-      clearTimeout(profileWaitRef.current);
-      profileWaitRef.current = null;
-    }
+    // Both session and profile loaded → clear any pending redirect
+    clearRedirectTimer();
 
     if (requireSuperAdmin && !isSuperAdmin) {
       navigate('/admin/dashboard', { replace: true });
     }
   }, [session, adminProfile, loading, navigate, requireSuperAdmin, isSuperAdmin]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (profileWaitRef.current) clearTimeout(profileWaitRef.current);
-    };
+    return () => clearRedirectTimer();
   }, []);
 
+  // Show spinner while loading auth or waiting for profile
   if (loading || (session && !adminProfile)) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-stone-500 text-sm">Đang xác thực...</p>
+        </div>
       </div>
     );
   }

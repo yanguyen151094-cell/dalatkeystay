@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import type { Property as SupabaseProperty } from './supabase';
+import { rentalListings, homestayListings, apartmentListings } from '../mocks/listings';
+import type { Property as MockProperty } from '../mocks/listings';
 
 export interface UIProperty {
   id: string | number;
@@ -64,6 +66,26 @@ export function mapSupabaseToUI(p: SupabaseProperty): UIProperty {
   };
 }
 
+function mapMockToUI(p: MockProperty): UIProperty {
+  return {
+    id: p.id,
+    title: p.title,
+    area: p.area,
+    price: p.price,
+    priceUnit: p.priceUnit,
+    bedrooms: p.bedrooms,
+    bathrooms: p.bathrooms,
+    size: p.size,
+    type: p.type === 'apartment' ? 'apartment' : p.type === 'homestay' ? 'homestay' : 'rental',
+    image: p.image,
+    images: p.images,
+    address: p.address,
+    description: p.description,
+    amenities: p.amenities,
+    featured: p.featured,
+  };
+}
+
 export function formatUIPrice(price: number, type: UIProperty['type']): string {
   if (type === 'apartment') {
     if (price >= 1000000000) {
@@ -87,7 +109,12 @@ export async function fetchRentalProperties(limit = 100): Promise<UIProperty[]> 
     .order('is_featured', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
-  return ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+
+  const supabaseItems = ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+  const mockItems = rentalListings.map(mapMockToUI);
+  const supabaseIds = new Set(supabaseItems.map(i => String(i.id)));
+  const filteredMock = mockItems.filter(m => !supabaseIds.has(String(m.id)));
+  return [...supabaseItems, ...filteredMock].slice(0, limit);
 }
 
 export async function fetchHomestayProperties(limit = 100): Promise<UIProperty[]> {
@@ -99,7 +126,12 @@ export async function fetchHomestayProperties(limit = 100): Promise<UIProperty[]
     .order('is_featured', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
-  return ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+
+  const supabaseItems = ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+  const mockItems = homestayListings.map(mapMockToUI);
+  const supabaseIds = new Set(supabaseItems.map(i => String(i.id)));
+  const filteredMock = mockItems.filter(m => !supabaseIds.has(String(m.id)));
+  return [...supabaseItems, ...filteredMock].slice(0, limit);
 }
 
 export async function fetchSaleProperties(limit = 100): Promise<UIProperty[]> {
@@ -111,7 +143,12 @@ export async function fetchSaleProperties(limit = 100): Promise<UIProperty[]> {
     .order('is_featured', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
-  return ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+
+  const supabaseItems = ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+  const mockItems = apartmentListings.map(mapMockToUI);
+  const supabaseIds = new Set(supabaseItems.map(i => String(i.id)));
+  const filteredMock = mockItems.filter(m => !supabaseIds.has(String(m.id)));
+  return [...supabaseItems, ...filteredMock].slice(0, limit);
 }
 
 export async function fetchAllProperties(limit = 300): Promise<UIProperty[]> {
@@ -122,7 +159,16 @@ export async function fetchAllProperties(limit = 300): Promise<UIProperty[]> {
     .order('is_featured', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
-  return ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+
+  const supabaseItems = ((data || []) as SupabaseProperty[]).map(mapSupabaseToUI);
+  const allMock = [
+    ...rentalListings.map(mapMockToUI),
+    ...homestayListings.map(mapMockToUI),
+    ...apartmentListings.map(mapMockToUI),
+  ];
+  const supabaseIds = new Set(supabaseItems.map(i => String(i.id)));
+  const filteredMock = allMock.filter(m => !supabaseIds.has(String(m.id)));
+  return [...supabaseItems, ...filteredMock].slice(0, limit);
 }
 
 export async function fetchPropertyById(id: string): Promise<UIProperty | null> {

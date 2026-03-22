@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { supabase, AdminProfile } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
@@ -17,53 +17,58 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  // Track whether the initial auth setup has been fully completed
+  const initializedRef = useRef(false);
 
-  // Hard failsafe: force loading=false after 6s no matter what
-  useEffect(() => {
-    const failsafe = setTimeout(() => setLoading(false), 6000);
-    return () => clearTimeout(failsafe);
-  }, []);
-
-  const fetchAdminProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('admin_profiles')
-      .select('*')
-      .eq('id', userId)
-      .eq('is_active', true)
-      .maybeSingle();
-    if (error) console.error('fetchAdminProfile error:', error.message);
-    return data as AdminProfile | null;
+  const fetchAdminProfile = async (userId: string): Promise<AdminProfile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_profiles')
+        .select('*')
+        .eq('id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) {
+        console.error('fetchAdminProfile error:', error.message);
+        return null;
+      }
+      return data as AdminProfile | null;
+    } catch (e) {
+      console.error('fetchAdminProfile exception:', e);
+      return null;
+    }
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
-      Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+    // Absolute failsafe: force done after 8s
+    const failsafe = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 8000);
 
     const initAuth = async () => {
       try {
-        const sessionResult = await withTimeout(
-          supabase.auth.getSession(),
-          5000,
-          { data: { session: null }, error: null }
-        );
-        const s = sessionResult.data.session;
-        if (!cancelled) {
-          setSession(s);
-          if (s?.user) {
-            const profile = await withTimeout(
-              fetchAdminProfile(s.user.id),
-              5000,
-              null
-            );
-            if (!cancelled) setAdminProfile(profile);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const s = sessionData?.session ?? null;
+
+        if (cancelled) return;
+        setSession(s);
+
+        if (s?.user) {
+          const profile = await fetchAdminProfile(s.user.id);
+          if (!cancelled) {
+            setAdminProfile(profile);
           }
         }
       } catch (e) {
         console.error('Auth init error:', e);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          initializedRef.current = true;
+          setLoading(false);
+          clearTimeout(failsafe);
+        }
       }
     };
 
@@ -72,47 +77,59 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (cancelled) return;
 
-      // Ignore token refresh events that aren't actual sign-outs
+      // TOKEN_REFRESHED: just silently update session, do NOT touch adminProfile
       if (event === 'TOKEN_REFRESHED') {
         setSession(s);
         return;
       }
 
+      // SIGNED_OUT: clear everything
       if (event === 'SIGNED_OUT') {
         setSession(null);
         setAdminProfile(null);
         return;
       }
 
+      // INITIAL_SESSION: skip if initAuth already handled it (avoid double fetch race)
+      if (event === 'INITIAL_SESSION') {
+        // initAuth is handling this, don't interfere
+        return;
+      }
+
+      // SIGNED_IN (e.g., after signInWithPassword):
+      // initAuth already set session+profile, just ensure session is in sync
       setSession(s);
-      if (s?.user) {
-        try {
-          const profile = await withTimeout(fetchAdminProfile(s.user.id), 5000, null);
-          if (!cancelled) setAdminProfile(profile);
-        } catch (e) {
-          console.error('Auth state change error:', e);
+
+      if (s?.user && initializedRef.current) {
+        // Only fetch profile for real sign-in events after init is complete
+        // This avoids race condition with initAuth
+        if (event === 'SIGNED_IN') {
+          const profile = await fetchAdminProfile(s.user.id);
+          if (!cancelled) {
+            setAdminProfile(profile);
+          }
         }
-      } else if (event !== 'INITIAL_SESSION') {
-        setAdminProfile(null);
       }
     });
 
     return () => {
       cancelled = true;
+      clearTimeout(failsafe);
       listener.subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const authResult = await Promise.race([
+      const result = await Promise.race([
         supabase.auth.signInWithPassword({ email, password }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 12000)
         ),
       ]);
-      const { data, error } = authResult;
+      const { data, error } = result;
       if (error) return { error: error.message };
+
       if (data.user && data.session) {
         const profile = await Promise.race([
           fetchAdminProfile(data.user.id),
@@ -122,7 +139,15 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
           await supabase.auth.signOut();
           return { error: 'Tài khoản không có quyền truy cập admin.' };
         }
-        supabase.from('admin_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id);
+        // Update profile immediately so ProtectedAdminRoute doesn't wait
+        setAdminProfile(profile);
+        setSession(data.session);
+        // Fire and forget last login update
+        supabase
+          .from('admin_profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.user.id)
+          .then(() => {});
       }
       return { error: null };
     } catch (e: unknown) {
@@ -135,9 +160,9 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
     setAdminProfile(null);
     setSession(null);
+    await supabase.auth.signOut();
   };
 
   return (
