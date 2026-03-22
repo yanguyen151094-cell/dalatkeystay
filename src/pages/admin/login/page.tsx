@@ -1,6 +1,7 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
+import { supabase } from '../../../lib/supabase';
 
 const AdminLogin = () => {
   const { signIn, loading, session, adminProfile } = useAdminAuth();
@@ -10,30 +11,108 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Redirect nếu đã đăng nhập
   useEffect(() => {
-    if (!loading && session && adminProfile) {
-      navigate('/admin/dashboard');
-    }
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+      if (elapsedTimerRef.current) clearInterval(elapsedTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loading && session && adminProfile) navigate('/admin/dashboard');
   }, [loading, session, adminProfile, navigate]);
+
+  const stopElapsed = () => {
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current);
+      elapsedTimerRef.current = null;
+    }
+    setElapsed(0);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError('');
+    setTestResult(null);
     setSubmitting(true);
+    setElapsed(0);
+
+    // Count elapsed seconds for UX feedback
+    elapsedTimerRef.current = setInterval(() => {
+      setElapsed(prev => prev + 1);
+    }, 1000);
+
+    // Safety fallback: reset after 20s
+    safetyTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) {
+        stopElapsed();
+        setSubmitting(false);
+        setError('Kết nối mất quá lâu (20 giây). Máy chủ Supabase có thể đang bận hoặc bị giới hạn. Vui lòng thử lại sau.');
+      }
+    }, 20000);
+
     try {
       const { error: err } = await signIn(email, password);
+      if (!mountedRef.current) return;
+      if (safetyTimerRef.current) { clearTimeout(safetyTimerRef.current); safetyTimerRef.current = null; }
+      stopElapsed();
       if (err) {
         setError(err);
       } else {
         navigate('/admin/dashboard');
       }
     } catch {
+      if (!mountedRef.current) return;
+      stopElapsed();
       setError('Có lỗi xảy ra. Vui lòng thử lại.');
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) setSubmitting(false);
     }
+  };
+
+  // Quick connection test
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    const start = Date.now();
+    try {
+      const { error } = await Promise.race([
+        supabase.from('admin_profiles').select('id').limit(1),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 8000)),
+      ]) as Awaited<ReturnType<typeof supabase.from>['select']>;
+      const ms = Date.now() - start;
+      if (error && error.code !== 'PGRST116') {
+        setTestResult(`Kết nối được nhưng có lỗi: ${error.message}`);
+      } else {
+        setTestResult(`Kết nối Supabase OK (${ms}ms) — Mạng và server đều ổn!`);
+      }
+    } catch (e: unknown) {
+      const ms = Date.now() - start;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === 'TIMEOUT' || ms >= 7900) {
+        setTestResult('Server Supabase phản hồi quá chậm (>8 giây) — Đây là nguyên nhân không đăng nhập được. Thử lại sau vài phút.');
+      } else {
+        setTestResult(`Không kết nối được: ${msg}`);
+      }
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const getElapsedHint = () => {
+    if (elapsed < 5) return 'Đang kết nối...';
+    if (elapsed < 10) return 'Máy chủ đang xử lý...';
+    return 'Mất hơi lâu, vui lòng đợi...';
   };
 
   return (
@@ -91,11 +170,20 @@ const AdminLogin = () => {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center gap-2">
-                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-start gap-2">
+                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <i className="ri-error-warning-line text-red-500 text-sm" />
                 </div>
                 <span className="text-red-600 text-sm">{error}</span>
+              </div>
+            )}
+
+            {testResult && (
+              <div className={`border rounded-lg px-4 py-3 flex items-start gap-2 ${testResult.includes('OK') ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i className={`text-sm ${testResult.includes('OK') ? 'ri-checkbox-circle-line text-green-600' : 'ri-alarm-warning-line text-amber-600'}`} />
+                </div>
+                <span className={`text-sm ${testResult.includes('OK') ? 'text-green-700' : 'text-amber-700'}`}>{testResult}</span>
               </div>
             )}
 
@@ -107,19 +195,39 @@ const AdminLogin = () => {
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Đang đăng nhập...
+                  {getElapsedHint()}
+                  {elapsed > 0 && <span className="text-white/70">({elapsed}s)</span>}
                 </span>
               ) : 'Đăng nhập'}
             </button>
           </form>
 
+          {/* Connection test */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={testing || submitting}
+              className="w-full border border-stone-200 text-stone-500 hover:text-stone-700 hover:border-stone-300 text-xs py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              {testing ? (
+                <>
+                  <span className="w-3 h-3 border border-stone-400 border-t-transparent rounded-full animate-spin" />
+                  Đang kiểm tra kết nối...
+                </>
+              ) : (
+                <>
+                  <i className="ri-wifi-line text-xs" />
+                  Kiểm tra kết nối server
+                </>
+              )}
+            </button>
+          </div>
+
           <div className="mt-5 pt-5 border-t border-stone-100 text-center">
             <p className="text-stone-500 text-xs">
               Chưa có tài khoản?{' '}
-              <Link
-                to="/admin/register"
-                className="text-amber-600 hover:text-amber-700 font-medium cursor-pointer"
-              >
+              <Link to="/admin/register" className="text-amber-600 hover:text-amber-700 font-medium cursor-pointer">
                 Đăng ký tài khoản Admin Cấp 2
               </Link>
             </p>

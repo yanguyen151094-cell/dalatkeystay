@@ -13,53 +13,66 @@ interface AdminAuthContextType {
 
 const AdminAuthContext = createContext<AdminAuthContextType | null>(null);
 
+// Helper: race a promise against a timeout
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(timeoutMsg)), ms)
+    ),
+  ]);
+}
+
 export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  // Track whether the initial auth setup has been fully completed
   const initializedRef = useRef(false);
+  const adminProfileRef = useRef<AdminProfile | null>(null);
+  adminProfileRef.current = adminProfile;
 
   const fetchAdminProfile = async (userId: string): Promise<AdminProfile | null> => {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('admin_profiles')
         .select('*')
         .eq('id', userId)
         .eq('is_active', true)
         .maybeSingle();
+
+      const { data, error } = await withTimeout(query, 8000, 'PROFILE_TIMEOUT');
+
       if (error) {
         console.error('fetchAdminProfile error:', error.message);
         return null;
       }
       return data as AdminProfile | null;
-    } catch (e) {
-      console.error('fetchAdminProfile exception:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('fetchAdminProfile exception:', msg);
       return null;
     }
   };
 
   useEffect(() => {
     let cancelled = false;
-
-    // Absolute failsafe: force done after 8s
     const failsafe = setTimeout(() => {
       if (!cancelled) setLoading(false);
     }, 8000);
 
     const initAuth = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: sessionData } = await withTimeout(
+          supabase.auth.getSession(),
+          6000,
+          'SESSION_TIMEOUT'
+        );
         const s = sessionData?.session ?? null;
-
         if (cancelled) return;
         setSession(s);
-
         if (s?.user) {
           const profile = await fetchAdminProfile(s.user.id);
-          if (!cancelled) {
-            setAdminProfile(profile);
-          }
+          if (!cancelled) setAdminProfile(profile);
         }
       } catch (e) {
         console.error('Auth init error:', e);
@@ -76,38 +89,14 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (cancelled) return;
-
-      // TOKEN_REFRESHED: just silently update session, do NOT touch adminProfile
-      if (event === 'TOKEN_REFRESHED') {
+      if (event === 'TOKEN_REFRESHED') { setSession(s); return; }
+      if (event === 'SIGNED_OUT') { setSession(null); setAdminProfile(null); return; }
+      if (event === 'INITIAL_SESSION') return;
+      if (event === 'SIGNED_IN') {
         setSession(s);
-        return;
-      }
-
-      // SIGNED_OUT: clear everything
-      if (event === 'SIGNED_OUT') {
-        setSession(null);
-        setAdminProfile(null);
-        return;
-      }
-
-      // INITIAL_SESSION: skip if initAuth already handled it (avoid double fetch race)
-      if (event === 'INITIAL_SESSION') {
-        // initAuth is handling this, don't interfere
-        return;
-      }
-
-      // SIGNED_IN (e.g., after signInWithPassword):
-      // initAuth already set session+profile, just ensure session is in sync
-      setSession(s);
-
-      if (s?.user && initializedRef.current) {
-        // Only fetch profile for real sign-in events after init is complete
-        // This avoids race condition with initAuth
-        if (event === 'SIGNED_IN') {
+        if (s?.user && !adminProfileRef.current) {
           const profile = await fetchAdminProfile(s.user.id);
-          if (!cancelled) {
-            setAdminProfile(profile);
-          }
+          if (!cancelled) setAdminProfile(profile);
         }
       }
     });
@@ -121,41 +110,66 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const result = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('CONNECTION_TIMEOUT')), 12000)
-        ),
-      ]);
-      const { data, error } = result;
-      if (error) return { error: error.message };
+      // Step 1: Auth with 15s timeout
+      let data: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['data'];
+      let authError: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['error'];
 
-      if (data.user && data.session) {
-        const profile = await Promise.race([
-          fetchAdminProfile(data.user.id),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
-        ]);
-        if (!profile) {
-          await supabase.auth.signOut();
-          return { error: 'Tài khoản không có quyền truy cập admin.' };
+      try {
+        const result = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          15000,
+          'AUTH_TIMEOUT'
+        );
+        data = result.data;
+        authError = result.error;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : '';
+        if (msg === 'AUTH_TIMEOUT') {
+          return { error: 'Máy chủ xác thực phản hồi quá chậm. Vui lòng thử lại sau ít phút.' };
         }
-        // Update profile immediately so ProtectedAdminRoute doesn't wait
-        setAdminProfile(profile);
-        setSession(data.session);
-        // Fire and forget last login update
-        supabase
-          .from('admin_profiles')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', data.user.id)
-          .then(() => {});
+        throw e;
       }
+
+      if (authError) {
+        const status = authError.status;
+        const msg = authError.message?.toLowerCase() ?? '';
+        if (status === 429 || msg.includes('rate limit') || msg.includes('too many')) {
+          return { error: 'Đã thử đăng nhập quá nhiều lần. Vui lòng đợi 10-15 phút rồi thử lại.' };
+        }
+        if (status === 400 || msg.includes('invalid') || msg.includes('email') || msg.includes('password') || msg.includes('credentials')) {
+          return { error: 'Email hoặc mật khẩu không đúng.' };
+        }
+        return { error: `Lỗi đăng nhập: ${authError.message}` };
+      }
+
+      if (!data?.user || !data?.session) {
+        return { error: 'Đăng nhập không thành công. Vui lòng thử lại.' };
+      }
+
+      // Step 2: Fetch admin profile with 8s timeout
+      const profile = await fetchAdminProfile(data.user.id);
+      if (!profile) {
+        supabase.auth.signOut().catch(() => {});
+        return { error: 'Tài khoản này không có quyền truy cập admin hoặc đã bị vô hiệu hóa.' };
+      }
+
+      setAdminProfile(profile);
+      setSession(data.session);
+
+      supabase
+        .from('admin_profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', data.user.id)
+        .then(() => {});
+
       return { error: null };
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '';
-      if (msg === 'CONNECTION_TIMEOUT') {
-        return { error: 'Kết nối quá chậm. Vui lòng kiểm tra kết nối mạng và thử lại.' };
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('signIn error:', msg);
+      if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network') || msg.toLowerCase().includes('failed')) {
+        return { error: 'Không thể kết nối mạng. Vui lòng kiểm tra internet và thử lại.' };
       }
-      return { error: 'Đã xảy ra lỗi. Vui lòng thử lại.' };
+      return { error: 'Có lỗi không xác định. Vui lòng thử lại.' };
     }
   };
 
@@ -167,14 +181,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AdminAuthContext.Provider
-      value={{
-        session,
-        adminProfile,
-        loading,
-        signIn,
-        signOut,
-        isSuperAdmin: adminProfile?.role === 'super_admin',
-      }}
+      value={{ session, adminProfile, loading, signIn, signOut, isSuperAdmin: adminProfile?.role === 'super_admin' }}
     >
       {children}
     </AdminAuthContext.Provider>
