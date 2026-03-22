@@ -32,26 +32,21 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   adminProfileRef.current = adminProfile;
 
   const fetchAdminProfile = async (userId: string): Promise<AdminProfile | null> => {
-    try {
-      const query = supabase
-        .from('admin_profiles')
-        .select('*')
-        .eq('id', userId)
-        .eq('is_active', true)
-        .maybeSingle();
+    const query = supabase
+      .from('admin_profiles')
+      .select('*')
+      .eq('id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
 
-      const { data, error } = await withTimeout(query, 8000, 'PROFILE_TIMEOUT');
+    // Throw on timeout so caller can distinguish "slow server" vs "no record"
+    const { data, error } = await withTimeout(query, 20000, 'PROFILE_TIMEOUT');
 
-      if (error) {
-        console.error('fetchAdminProfile error:', error.message);
-        return null;
-      }
-      return data as AdminProfile | null;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.error('fetchAdminProfile exception:', msg);
+    if (error) {
+      console.error('fetchAdminProfile error:', error.message);
       return null;
     }
+    return data as AdminProfile | null;
   };
 
   useEffect(() => {
@@ -146,8 +141,19 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: 'Đăng nhập không thành công. Vui lòng thử lại.' };
       }
 
-      // Step 2: Fetch admin profile with 8s timeout
-      const profile = await fetchAdminProfile(data.user.id);
+      // Step 2: Fetch admin profile — distinguish timeout vs no record
+      let profile: AdminProfile | null = null;
+      try {
+        profile = await fetchAdminProfile(data.user.id);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : '';
+        if (msg === 'PROFILE_TIMEOUT') {
+          supabase.auth.signOut().catch(() => {});
+          return { error: 'Máy chủ đang phản hồi chậm (>20 giây). Vui lòng thử lại sau 1-2 phút.' };
+        }
+        throw e;
+      }
+
       if (!profile) {
         supabase.auth.signOut().catch(() => {});
         return { error: 'Tài khoản này không có quyền truy cập admin hoặc đã bị vô hiệu hóa.' };

@@ -52,14 +52,14 @@ const AdminLogin = () => {
       setElapsed(prev => prev + 1);
     }, 1000);
 
-    // Safety fallback: reset after 20s
+    // Safety fallback: reset after 40s max
     safetyTimerRef.current = setTimeout(() => {
       if (mountedRef.current) {
         stopElapsed();
         setSubmitting(false);
-        setError('Kết nối mất quá lâu (20 giây). Máy chủ Supabase có thể đang bận hoặc bị giới hạn. Vui lòng thử lại sau.');
+        setError('Kết nối mất quá lâu. Máy chủ Supabase đang rất chậm, vui lòng thử lại sau vài phút.');
       }
-    }, 20000);
+    }, 40000);
 
     try {
       const { error: err } = await signIn(email, password);
@@ -110,9 +110,10 @@ const AdminLogin = () => {
   };
 
   const getElapsedHint = () => {
-    if (elapsed < 5) return 'Đang kết nối...';
-    if (elapsed < 10) return 'Máy chủ đang xử lý...';
-    return 'Mất hơi lâu, vui lòng đợi...';
+    if (elapsed < 5) return 'Đang xác thực...';
+    if (elapsed < 16) return 'Đang tải thông tin tài khoản...';
+    if (elapsed < 30) return 'Server hơi chậm, vui lòng chờ...';
+    return 'Gần xong rồi...';
   };
 
   return (
