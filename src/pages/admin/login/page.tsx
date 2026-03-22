@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAdminAuth } from '../../../contexts/AdminAuthContext';
-import { supabase } from '../../../lib/supabase';
+import { supabase, supabaseConfigValid } from '../../../lib/supabase';
 
 const AdminLogin = () => {
   const { signIn, loading, session, adminProfile } = useAdminAuth();
@@ -126,6 +126,30 @@ const AdminLogin = () => {
           <h1 className="text-2xl font-bold text-white tracking-tight">Key Stay Admin</h1>
           <p className="text-stone-400 text-sm mt-1">Đăng nhập để quản lý hệ thống</p>
         </div>
+
+        {/* ENV VARS missing warning */}
+        {!supabaseConfigValid && (
+          <div className="mb-4 bg-red-500/20 border border-red-400/50 rounded-xl px-4 py-3">
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i className="ri-error-warning-fill text-red-400 text-base" />
+              </div>
+              <div>
+                <p className="text-red-300 text-sm font-semibold">Thiếu cấu hình Supabase</p>
+                <p className="text-red-400 text-xs mt-0.5">
+                  Biến môi trường chưa được cấu hình trên server này. Đây là nguyên nhân không đăng nhập được.
+                </p>
+                <p className="text-red-400 text-xs mt-1">
+                  Vào <strong>Vercel → Settings → Environment Variables</strong> và thêm:
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  <li className="text-red-300 text-xs font-mono">VITE_PUBLIC_SUPABASE_URL</li>
+                  <li className="text-red-300 text-xs font-mono">VITE_PUBLIC_SUPABASE_ANON_KEY</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">

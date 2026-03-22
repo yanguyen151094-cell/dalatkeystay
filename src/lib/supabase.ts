@@ -3,14 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    storageKey: 'keystay-admin-auth',
-  },
-});
+// Expose config validity so UI can warn user clearly
+export const supabaseConfigValid = Boolean(
+  supabaseUrl && supabaseUrl.startsWith('https://') &&
+  supabaseAnonKey && supabaseAnonKey.length > 20
+);
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storageKey: 'keystay-admin-auth',
+    },
+  }
+);
 
 export type AdminRole = 'super_admin' | 'operator';
 
