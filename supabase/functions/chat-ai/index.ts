@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) {
       return new Response(
-        JSON.stringify({ reply: 'Hệ thống chưa được cấu hình. Vui lòng liên hệ hotline 0263 382 2888!' }),
+        JSON.stringify({ reply: 'Hệ thống chưa được cấu hình. Vui lòng liên hệ hotline 0982 947 645!' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -135,7 +135,7 @@ KIẾN THỨC VỀ ĐÀ LẠT – TRẢ LỜI CÓ TRỌNG TÂM
 ════════════════════════════
 THÔNG TIN DỊCH VỤ ĐÀ LẠT KEY STAY
 ════════════════════════════
-• Hotline: 0263 382 2888
+• Hotline: 0982 947 645
 • Dịch vụ: Cho thuê homestay ngắn ngày, căn hộ và nhà nguyên căn dài hạn, môi giới mua bán BĐS
 • Có dịch vụ quản lý cho thuê cho chủ nhà (thu nhập thụ động)
 • Hợp đồng minh bạch, hỗ trợ 24/7
@@ -183,7 +183,7 @@ NGUYÊN TẮC TRẢ LỜI QUAN TRỌNG
       const errText = await response.text();
       console.error('OpenAI error:', response.status, errText);
       return new Response(
-        JSON.stringify({ reply: 'Xin lỗi, hệ thống đang tạm thời gián đoạn. Vui lòng thử lại hoặc gọi hotline 0263 382 2888!' }),
+        JSON.stringify({ reply: 'Xin lỗi, hệ thống đang tạm thời gián đoạn. Vui lòng thử lại hoặc gọi hotline 0982 947 645!' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -197,7 +197,7 @@ NGUYÊN TẮC TRẢ LỜI QUAN TRỌNG
   } catch (err) {
     console.error('Edge function error:', err);
     return new Response(
-      JSON.stringify({ reply: 'Mình gặp sự cố kỹ thuật. Vui lòng thử lại hoặc gọi hotline 0263 382 2888!' }),
+      JSON.stringify({ reply: 'Mình gặp sự cố kỹ thuật. Vui lòng thử lại hoặc gọi hotline 0982 947 645!' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   }
