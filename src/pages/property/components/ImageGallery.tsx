@@ -44,119 +44,187 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
     return () => { document.body.style.overflow = ''; };
   }, [lightboxOpen]);
 
+  if (!images || images.length === 0) return null;
+
   const mainImage = images[0];
   const thumbImages = images.slice(1, 5);
-  const remaining = images.length - 5;
 
   return (
     <>
-      {/* Gallery Grid */}
-      <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[480px] rounded-2xl overflow-hidden">
-        {/* Main large image */}
-        <div
-          className="col-span-2 row-span-2 relative overflow-hidden cursor-pointer group"
-          onClick={() => openLightbox(0)}
-        >
-          <img
-            src={mainImage}
-            alt={`${title} - ảnh 1`}
-            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-        </div>
+      {/* ── Gallery Grid ── */}
+      <div className="relative rounded-2xl overflow-hidden">
 
-        {/* Thumbnail images */}
-        {thumbImages.map((img, idx) => (
+        {/* Desktop: 1 large + 4 thumbs */}
+        <div className="hidden md:grid md:grid-cols-[3fr_2fr] md:gap-2 h-[460px]">
+
+          {/* Main image */}
           <div
-            key={idx}
-            className={`relative overflow-hidden cursor-pointer group ${idx === 3 ? 'relative' : ''}`}
-            onClick={() => openLightbox(idx + 1)}
+            className="relative overflow-hidden cursor-pointer group rounded-l-2xl"
+            onClick={() => openLightbox(0)}
           >
             <img
-              src={img}
-              alt={`${title} - ảnh ${idx + 2}`}
-              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+              src={mainImage}
+              alt={`${title} - ảnh 1`}
+              className="w-full h-full object-cover object-center group-hover:scale-[1.03] transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-            {idx === 3 && remaining > 0 && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <p className="text-2xl font-bold">+{remaining + 1}</p>
-                  <p className="text-xs mt-1 opacity-90">ảnh</p>
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+          </div>
+
+          {/* Right thumbs 2×2 */}
+          <div className="grid grid-cols-2 grid-rows-2 gap-2">
+            {[0, 1, 2, 3].map((i) => {
+              const img = thumbImages[i];
+              const isLast = i === 3;
+              const remaining = images.length - 5;
+              if (!img) return <div key={i} className={`bg-stone-100 ${i === 1 ? 'rounded-tr-2xl' : i === 3 ? 'rounded-br-2xl' : ''}`} />;
+              return (
+                <div
+                  key={i}
+                  className={`relative overflow-hidden cursor-pointer group ${i === 1 ? 'rounded-tr-2xl' : i === 3 ? 'rounded-br-2xl' : ''}`}
+                  onClick={() => openLightbox(i + 1)}
+                >
+                  <img
+                    src={img}
+                    alt={`${title} - ảnh ${i + 2}`}
+                    className="w-full h-full object-cover object-center group-hover:scale-[1.05] transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  {isLast && remaining > 0 && (
+                    <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center pointer-events-none">
+                      <p className="text-white text-2xl font-bold leading-none">+{remaining + 1}</p>
+                      <p className="text-white/80 text-xs mt-1">ảnh nữa</p>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile: main image + scrollable strip */}
+        <div className="md:hidden">
+          <div
+            className="relative w-full overflow-hidden rounded-2xl cursor-pointer"
+            style={{ height: '260px' }}
+            onClick={() => openLightbox(0)}
+          >
+            <img
+              src={mainImage}
+              alt={`${title} - ảnh 1`}
+              className="w-full h-full object-cover object-center"
+            />
+            {images.length > 1 && (
+              <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                <div className="w-3 h-3 flex items-center justify-center">
+                  <i className="ri-image-line text-xs" />
+                </div>
+                {images.length} ảnh
               </div>
             )}
           </div>
-        ))}
 
-        {/* Show all button */}
-        <button
-          onClick={() => openLightbox(0)}
-          className="absolute bottom-4 right-4 bg-white text-stone-800 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 shadow hover:bg-stone-50 transition-colors cursor-pointer whitespace-nowrap z-10"
-          style={{ position: 'absolute', right: '1rem', bottom: '1rem' }}
-        >
-          <i className="ri-grid-line"></i>
-          Xem tất cả {images.length} ảnh
-        </button>
+          {images.length > 1 && (
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+              {images.slice(1).map((img, idx) => (
+                <div
+                  key={idx}
+                  className="flex-shrink-0 w-20 h-16 rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-emerald-400 transition-colors"
+                  onClick={() => openLightbox(idx + 1)}
+                >
+                  <img
+                    src={img}
+                    alt={`${title} - ảnh ${idx + 2}`}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* View all button – desktop */}
+        {images.length > 1 && (
+          <button
+            onClick={() => openLightbox(0)}
+            className="hidden md:flex absolute bottom-4 right-4 bg-white/95 text-stone-800 px-4 py-2 rounded-xl text-sm font-medium items-center gap-2 hover:bg-white transition-colors cursor-pointer whitespace-nowrap border border-stone-200"
+          >
+            <div className="w-4 h-4 flex items-center justify-center">
+              <i className="ri-grid-fill text-stone-600" />
+            </div>
+            Xem tất cả {images.length} ảnh
+          </button>
+        )}
       </div>
 
-      {/* Lightbox */}
+      {/* ── Lightbox ── */}
       {lightboxOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) closeLightbox(); }}
         >
-          {/* Close button */}
+          {/* Close */}
           <button
             onClick={closeLightbox}
-            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer z-10"
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors cursor-pointer z-10"
           >
-            <i className="ri-close-line text-xl"></i>
+            <div className="w-5 h-5 flex items-center justify-center">
+              <i className="ri-close-line text-lg" />
+            </div>
           </button>
 
           {/* Counter */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+          <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-black/50 text-white/90 text-sm px-3 py-1 rounded-full">
             {currentIndex + 1} / {images.length}
           </div>
 
-          {/* Prev button */}
+          {/* Prev */}
           <button
             onClick={goPrev}
-            className="absolute left-4 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer z-10"
+            className="absolute left-3 md:left-6 w-11 h-11 flex items-center justify-center bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors cursor-pointer z-10"
           >
-            <i className="ri-arrow-left-line text-xl"></i>
+            <div className="w-5 h-5 flex items-center justify-center">
+              <i className="ri-arrow-left-s-line text-xl" />
+            </div>
           </button>
 
           {/* Main image */}
-          <div className="max-w-5xl max-h-[80vh] w-full px-20">
+          <div className="w-full max-w-4xl px-16 md:px-24 flex items-center justify-center" style={{ maxHeight: '75vh' }}>
             <img
               src={images[currentIndex]}
               alt={`${title} - ảnh ${currentIndex + 1}`}
-              className="w-full max-h-[80vh] object-contain rounded-lg"
+              className="max-w-full max-h-full object-contain rounded-xl"
+              style={{ maxHeight: '72vh' }}
             />
           </div>
 
-          {/* Next button */}
+          {/* Next */}
           <button
             onClick={goNext}
-            className="absolute right-4 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors cursor-pointer z-10"
+            className="absolute right-3 md:right-6 w-11 h-11 flex items-center justify-center bg-white/10 hover:bg-white/25 rounded-full text-white transition-colors cursor-pointer z-10"
           >
-            <i className="ri-arrow-right-line text-xl"></i>
+            <div className="w-5 h-5 flex items-center justify-center">
+              <i className="ri-arrow-right-s-line text-xl" />
+            </div>
           </button>
 
           {/* Thumbnail strip */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-2xl px-4">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                  idx === currentIndex ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-80'
-                }`}
-              >
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center px-4">
+            <div className="flex gap-2 overflow-x-auto max-w-xl py-1 px-2">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                    idx === currentIndex
+                      ? 'border-white opacity-100 scale-105'
+                      : 'border-transparent opacity-45 hover:opacity-75'
+                  }`}
+                  style={{ width: '52px', height: '38px' }}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

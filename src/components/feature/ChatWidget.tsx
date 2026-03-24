@@ -9,6 +9,8 @@ import {
 } from './chatUtils';
 
 const FORM_URL = 'https://readdy.ai/api/form/d6tbrta4of3kuoicn2kg';
+const BOOKING_FORM_URL = 'https://readdy.ai/api/form/d7156rjk1jkj467r590g';
+const FB_PAGE_NAME = 'DaLatkeystay';
 const AI_ENDPOINT = `${import.meta.env.VITE_PUBLIC_SUPABASE_URL}/functions/v1/chat-ai`;
 
 // OpenAI-compatible message format for history
@@ -38,6 +40,15 @@ interface LeadForm {
   name: string;
   phone: string;
   need: string;
+}
+
+interface BookingForm {
+  name: string;
+  phone: string;
+  email: string;
+  property: string;
+  moveInDate: string;
+  note: string;
 }
 
 const INITIAL_MSG: TextMessage = {
@@ -117,9 +128,16 @@ export default function ChatWidget() {
   const [isTyping, setIsTyping] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [bookingFormSent, setBookingFormSent] = useState(false);
+  const [messengerUrl, setMessengerUrl] = useState<string | null>(null);
   const [hasNew, setHasNew] = useState(false);
   const [leadForm, setLeadForm] = useState<LeadForm>({ name: '', phone: '', need: '' });
+  const [bookingForm, setBookingForm] = useState<BookingForm>({
+    name: '', phone: '', email: '', property: '', moveInDate: '', note: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   // Keep conversation history for AI context
   const historyRef = useRef<HistoryMessage[]>([]);
@@ -183,7 +201,13 @@ export default function ChatWidget() {
     try {
       const response = await getSmartResponse(msg);
 
-      if (response.type === 'collect-info') {
+      if (response.type === 'booking') {
+        setIsTyping(false);
+        addBotTextMessage(response.text);
+        historyRef.current = [...historyRef.current, { role: 'assistant', content: response.text }];
+        setTimeout(() => setShowBookingForm(true), 500);
+
+      } else if (response.type === 'collect-info') {
         setIsTyping(false);
         addBotTextMessage(response.text);
         // Add to history
@@ -240,6 +264,57 @@ export default function ChatWidget() {
     setShowLeadForm(false);
     addBotTextMessage(
       `Cảm ơn bạn ${leadForm.name}! ✅\n\nMình đã chuyển thông tin cho nhân viên tư vấn rồi. Bạn sẽ nhận cuộc gọi qua số ${leadForm.phone} trong thời gian sớm nhất!\n\n📞 Hotline hỗ trợ ngay: 0263 382 2888`,
+    );
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsBookingSubmitting(true);
+
+    const data = new URLSearchParams({
+      name: bookingForm.name,
+      phone: bookingForm.phone,
+      email: bookingForm.email || 'Không cung cấp',
+      property: bookingForm.property || 'Không ghi rõ',
+      moveInDate: bookingForm.moveInDate || 'Chưa xác định',
+      note: bookingForm.note || '',
+    });
+
+    try {
+      await fetch(BOOKING_FORM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data.toString(),
+      });
+    } catch {
+      // silently ignore
+    }
+
+    // Build Messenger deep link with pre-filled booking info
+    const msgLines = [
+      '🏠 ĐĂNG KÝ THUÊ CĂN HỘ - Đà Lạt Key Stay',
+      `👤 Họ tên: ${bookingForm.name}`,
+      `📞 SĐT: ${bookingForm.phone}`,
+      bookingForm.email ? `📧 Email: ${bookingForm.email}` : '',
+      bookingForm.property ? `🏡 Căn hộ quan tâm: ${bookingForm.property}` : '',
+      bookingForm.moveInDate ? `📅 Ngày vào ở: ${bookingForm.moveInDate}` : '',
+      bookingForm.note ? `📝 Ghi chú: ${bookingForm.note}` : '',
+    ].filter(Boolean).join('\n');
+
+    const url = `https://m.me/${FB_PAGE_NAME}?text=${encodeURIComponent(msgLines)}`;
+    setMessengerUrl(url);
+
+    setIsBookingSubmitting(false);
+    setBookingFormSent(true);
+    setShowBookingForm(false);
+
+    // Auto-open Messenger on mobile after short delay
+    setTimeout(() => {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }, 600);
+
+    addBotTextMessage(
+      `Đã lưu đăng ký của bạn ${bookingForm.name}! ✅\n\nBước tiếp: bấm nút bên dưới để gửi thông tin vào Messenger Fanpage — nhân viên sẽ phản hồi ngay!`,
     );
   };
 
@@ -432,6 +507,127 @@ export default function ChatWidget() {
                     )}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* Booking form */}
+            {showBookingForm && !bookingFormSent && (
+              <div className="bg-white border border-emerald-200 rounded-2xl p-3 ml-8">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <div className="w-5 h-5 flex items-center justify-center bg-emerald-100 rounded-full flex-shrink-0">
+                    <i className="ri-home-heart-line text-emerald-600 text-xs" />
+                  </div>
+                  <p className="text-xs font-bold text-stone-800">Đăng ký thuê căn hộ</p>
+                </div>
+                <form data-readdy-form onSubmit={handleBookingSubmit} className="space-y-2">
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="Họ và tên *"
+                    value={bookingForm.name}
+                    onChange={(e) => setBookingForm((p) => ({ ...p, name: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50"
+                  />
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    placeholder="Số điện thoại *"
+                    value={bookingForm.phone}
+                    onChange={(e) => setBookingForm((p) => ({ ...p, phone: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50"
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email (tuỳ chọn)"
+                    value={bookingForm.email}
+                    onChange={(e) => setBookingForm((p) => ({ ...p, email: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50"
+                  />
+                  <input
+                    type="text"
+                    name="property"
+                    placeholder="Căn hộ quan tâm (tên hoặc khu vực)"
+                    value={bookingForm.property}
+                    onChange={(e) => setBookingForm((p) => ({ ...p, property: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50"
+                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="moveInDate"
+                      value={bookingForm.moveInDate}
+                      onChange={(e) => setBookingForm((p) => ({ ...p, moveInDate: e.target.value }))}
+                      className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50"
+                    />
+                    {!bookingForm.moveInDate && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 pointer-events-none">
+                        Ngày muốn vào ở
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    name="note"
+                    placeholder="Yêu cầu thêm (tuỳ chọn)..."
+                    value={bookingForm.note}
+                    onChange={(e) => setBookingForm((p) => ({ ...p, note: e.target.value }))}
+                    maxLength={500}
+                    rows={2}
+                    className="w-full px-3 py-2 text-xs border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-400 bg-stone-50 resize-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isBookingSubmitting}
+                    className="w-full py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-60 transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5"
+                  >
+                    {isBookingSubmitting ? (
+                      <>
+                        <i className="ri-loader-4-line animate-spin" />
+                        Đang gửi...
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-calendar-check-line" />
+                        Gửi đăng ký thuê
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-stone-400 text-center">
+                    Nhân viên liên hệ trong 30 phút
+                  </p>
+                </form>
+              </div>
+            )}
+
+            {/* Messenger CTA after booking sent */}
+            {bookingFormSent && messengerUrl && (
+              <div className="ml-8 bg-white border border-blue-100 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #0084ff 0%, #a033ff 50%, #ff5c7c 100%)' }}
+                  >
+                    <i className="ri-messenger-line text-white text-sm" />
+                  </div>
+                  <p className="text-xs font-bold text-stone-800">Gửi qua Facebook Messenger</p>
+                </div>
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  Thông tin đã được điền sẵn — bạn chỉ cần bấm <strong>Gửi</strong> trong Messenger là xong!
+                </p>
+                <a
+                  href={messengerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white text-xs font-semibold transition-opacity hover:opacity-90 cursor-pointer whitespace-nowrap"
+                  style={{ background: 'linear-gradient(135deg, #0084ff 0%, #a033ff 100%)' }}
+                >
+                  <i className="ri-messenger-fill text-sm" />
+                  Mở Messenger &amp; gửi ngay
+                </a>
+                <p className="text-[10px] text-stone-400 text-center">
+                  Mở app Messenger trên điện thoại của bạn
+                </p>
               </div>
             )}
 

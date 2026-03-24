@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all needed context in parallel
     const [propertiesRes, blogRes, contentRes] = await Promise.all([
       supabase
         .from('properties')
@@ -109,36 +108,28 @@ KIẾN THỨC VỀ ĐÀ LẠT – TRẢ LỜI CÓ TRỌNG TÂM
 • Mùa mưa: tháng 5 – tháng 10 (mưa chiều, sáng vẫn trong xanh)
 • Tháng 12 – tháng 2: Lạnh nhất 8–15°C, sương mù nhiều, hoa mai anh đào nở đẹp
 • Tháng 3 – 4: Khô hanh, hoa dã quỳ nở vàng, thích hợp picnic
-• Không có bão trực tiếp, thỉnh thoảng ảnh hưởng gió từ bão xa
 
 🍽️ ĂN UỐNG & ĐẶC SẢN:
 • Bánh mì xíu mại – đặc sản vỉa hè nổi tiếng nhất Đà Lạt
 • Bánh căn, bánh tráng nướng, bún bò Đà Lạt
 • Artichoke trà (trà actiso), rượu vang Đà Lạt, sữa đậu nành Đà Lạt
 • Dâu tây, atiso, cà phê Arabica Đà Lạt ngon nổi tiếng
-• Chợ Đà Lạt họp từ 6h–22h – ăn vặt đủ loại
-• Khu cà phê view đẹp: đường Trần Hưng Đạo, khu phường 3–4
-• Chi phí ăn uống 1 ngày: 100–200k/người
 
 🚗 DI CHUYỂN & SINH HOẠT:
 • Xe máy: phổ biến nhất, thuê 100–150k/ngày
 • Grab/taxi: có nhưng khan hiếm giờ cao điểm, nên book trước
-• Xe buýt nội thành: giá 7–12k/lượt
 • Sân bay Liên Khương cách trung tâm ~35km, ~45 phút
-• Chi phí sinh hoạt tháng: ~5–8 triệu/người (thấp hơn TP.HCM 30–40%)
+• Chi phí sinh hoạt tháng: ~5–8 triệu/người
 
 🏡 THỊ TRƯỜNG BẤT ĐỘNG SẢN:
 • Homestay thuê theo ngày: 500k – 3.000k/đêm tùy vị trí và view
 • Phòng thuê tháng: 3 – 8 triệu khu bình dân, 8–20 triệu khu cao cấp
 • Căn hộ dài hạn: 7 – 20 triệu/tháng
-• Đất nền và nhà mua bán: đang điều chỉnh sau giai đoạn tăng mạnh 2020–2023
 • Homestay cho thuê: ROI 12–18%/năm nếu vị trí đẹp, quản lý tốt
-• Kinh nghiệm thuê: nên thuê thử 1–2 tháng trước khi ký hợp đồng dài hạn
 
 📍 ĐỊA ĐIỂM NỔI TIẾNG:
 • Hồ Xuân Hương, Thung lũng Tình yêu, Đồi Robin, Langbiang
 • Chợ Đà Lạt, Quảng trường Lâm Viên, Nhà thờ Con Gà
-• Đường hầm đất sét, Rừng thông Mang Lin, vườn hoa Đà Lạt
 • Cung đường Đông Tây – săn mây sáng sớm
 
 ════════════════════════════
@@ -150,19 +141,23 @@ THÔNG TIN DỊCH VỤ ĐÀ LẠT KEY STAY
 • Hợp đồng minh bạch, hỗ trợ 24/7
 • Tất cả bất động sản đã qua kiểm duyệt, đảm bảo pháp lý
 
+════════════════════════════════════
+HƯỚNG DẪN MỜI KHÁCH ĐĂNG KÝ THUÊ
+════════════════════════════════════
+Khi khách có dấu hiệu muốn thuê (ví dụ: "căn này được đó", "ok mình thích căn này", "giá hợp lý", "cho mình xem thêm", "mình cân nhắc căn này"), hãy khuyến khích họ nhắn "mình lấy căn này" hoặc "tôi muốn thuê" để hệ thống tự động hiện form đăng ký. Ví dụ:
+→ "Căn đó đang còn trống đó! Bạn nhắn 'mình lấy căn này' để đăng ký ngay, nhân viên sẽ liên hệ trong 30 phút!"
+
 ════════════════════════
 NGUYÊN TẮC TRẢ LỜI QUAN TRỌNG
 ════════════════════════
 1. LUÔN TRẢ LỜI mọi câu hỏi – tuyệt đối không được từ chối hay nói "không biết" với câu hỏi hợp lệ
-2. Câu hỏi về Đà Lạt (địa điểm, ăn uống, thời tiết, di chuyển, sinh hoạt, văn hóa...) → dùng kiến thức trên trả lời ĐẦY ĐỦ và TRỌNG TÂM
-3. Câu hỏi về BĐS, thuê nhà, mua bán → ưu tiên dữ liệu THỰC TẾ từ danh sách phòng trên
+2. Câu hỏi về Đà Lạt → dùng kiến thức trên trả lời ĐẦY ĐỦ và TRỌNG TÂM
+3. Câu hỏi về BĐS, thuê nhà → ưu tiên dữ liệu THỰC TẾ từ danh sách phòng
 4. Câu hỏi tài chính, ngân sách → so sánh với giá thực tế, tư vấn phù hợp
-5. Câu hỏi về trang web, dịch vụ → dựa vào thông tin dịch vụ trên
-6. Câu hỏi vui/trò chuyện → thoải mái, thân thiện
-7. Khi khách muốn đặt phòng → mời để lại SĐT
-8. Câu trả lời TỐI ĐA 200 từ, dùng tiếng Việt, tự nhiên như người thật
-9. Không dùng quá 2 emoji mỗi tin nhắn
-10. Không bịa thông tin không có trong dữ liệu`;
+5. Khi khách hỏi tiếp về căn cụ thể hoặc có vẻ thích → gợi ý nhắn "mình lấy căn này" để form đăng ký hiện ra
+6. Câu trả lời TỐI ĐA 200 từ, dùng tiếng Việt, tự nhiên như người thật
+7. Không dùng quá 2 emoji mỗi tin nhắn
+8. Không bịa thông tin không có trong dữ liệu`;
 
     const messages = [
       { role: 'system', content: systemPrompt },

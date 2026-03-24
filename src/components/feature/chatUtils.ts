@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 
 export interface ChatResponse {
-  type: 'text' | 'collect-info' | 'properties';
+  type: 'text' | 'collect-info' | 'properties' | 'booking';
   text: string;
   properties?: PropertyResult[];
   useAI?: boolean;
@@ -35,6 +35,17 @@ const contains = (msg: string, keywords: string[]) =>
 const BOOKING_KW = [
   'dat phong', 'dat lich', 'book phong', 'thue ngay', 'dat ngay',
   'lich trong', 'check in', 'nhan phong', 'dat cho', 'muon dat',
+];
+
+const BOOKING_INTENT_KW = [
+  'lay can', 'lấy căn', 'muon thue', 'muốn thuê', 'thue luon', 'thuê luôn',
+  'chot luon', 'chốt luôn', 'dang ky thue', 'đăng ký thuê',
+  'ky hop dong', 'ký hợp đồng', 'dat coc', 'đặt cọc',
+  'muon xem thuc te', 'muốn xem thực tế', 'xem can ho nay', 'xem căn hộ này',
+  'toi muon thue', 'tôi muốn thuê', 'minh lay', 'mình lấy',
+  'chon can nay', 'chọn căn này', 'nhan can', 'nhận căn',
+  'muon dat truoc', 'muốn đặt trước', 'book can', 'book căn',
+  'lay phong', 'lấy phòng', 'chot phong', 'chốt phòng',
 ];
 
 const CONTACT_KW = [
@@ -232,6 +243,14 @@ export async function getSmartResponse(message: string): Promise<ChatResponse> {
   const budget = extractBudget(lc);
   const hasBudgetWord = /\d/.test(normed) && contains(lc, ['trieu', 'tr ', 'nghin', ' k ', 'ty ', 'tỷ', 'triệu', 'nghìn', 'tài chính', 'ngân sách', 'co bao nhieu', 'chi phi']);
   const hasPropertySearchWord = isPropertySearch(lc);
+
+  // --- 0. Booking intent (customer wants to rent a specific unit) ---
+  if (contains(lc, BOOKING_INTENT_KW)) {
+    return {
+      type: 'booking',
+      text: 'Tuyệt vời! Bạn điền thông tin bên dưới để đăng ký thuê nhé — nhân viên sẽ liên hệ xác nhận trong vòng 30 phút!',
+    };
+  }
 
   // --- 1. Pure greeting ---
   if (isPureGreeting(lc)) {
