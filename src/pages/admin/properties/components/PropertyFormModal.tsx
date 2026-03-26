@@ -79,7 +79,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
   const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null);
   const [videoUrlError, setVideoUrlError] = useState('');
   const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoUploadProgress, setVideoUploadProgress] = useState<{ name: string; status: 'uploading' | 'done' | 'error' }[]>([]);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<{ name: string; status: 'uploading' | 'done' | 'error'; errorMsg?: string }[]>([]);
   const [videoDragging, setVideoDragging] = useState(false);
 
   const [form, setForm] = useState({
@@ -165,6 +165,17 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
 
     for (let i = 0; i < videoFiles.length; i++) {
       const file = videoFiles[i];
+
+      // Check file size: Supabase free plan limit is ~50MB
+      const MAX_MB = 50;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        const fileMB = (file.size / 1024 / 1024).toFixed(1);
+        setVideoUploadProgress(prev => prev.map((p, idx) =>
+          idx === i ? { ...p, status: 'error', errorMsg: `File ${fileMB}MB vượt giới hạn ${MAX_MB}MB` } : p
+        ));
+        continue;
+      }
+
       const ext = file.name.split('.').pop() || 'mp4';
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const filePath = `videos/property/${fileName}`;
@@ -174,7 +185,14 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
         .upload(filePath, file, { upsert: false });
 
       if (uploadError) {
-        setVideoUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: 'error' } : p));
+        const msg = uploadError.message?.includes('exceeded')
+          ? 'Vượt dung lượng Storage'
+          : uploadError.message?.includes('Payload Too Large') || uploadError.message?.includes('413')
+          ? 'File quá lớn (>50MB)'
+          : uploadError.message || 'Upload thất bại';
+        setVideoUploadProgress(prev => prev.map((p, idx) =>
+          idx === i ? { ...p, status: 'error', errorMsg: msg } : p
+        ));
         continue;
       }
 
@@ -193,7 +211,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
     }
 
     setUploadingVideo(false);
-    setTimeout(() => setVideoUploadProgress([]), 1500);
+    setTimeout(() => setVideoUploadProgress([]), 3000);
   };
 
   const handleVideoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -483,27 +501,37 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
               </label>
 
               {form.images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {form.images.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-stone-200 aspect-video bg-stone-100">
-                      <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover object-top" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                        {idx !== 0 && (
-                          <button type="button" onClick={() => setAsThumbnail(idx)} title="Đặt làm ảnh đại diện"
-                            className="w-7 h-7 flex items-center justify-center bg-white rounded-lg cursor-pointer">
-                            <i className="ri-star-line text-amber-500 text-xs" />
-                          </button>
-                        )}
-                        <button type="button" onClick={() => removeImage(idx)}
-                          className="w-7 h-7 flex items-center justify-center bg-white rounded-lg cursor-pointer">
-                          <i className="ri-delete-bin-line text-red-500 text-xs" />
-                        </button>
-                      </div>
-                      {idx === 0 && (
-                        <div className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">Đại diện</div>
-                      )}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs text-stone-400">{form.images.length} ảnh</span>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto rounded-xl border border-stone-100 p-2 bg-stone-50/50">
+                    <div className="grid grid-cols-3 gap-2">
+                      {form.images.map((url, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-stone-200 aspect-video bg-stone-100">
+                          <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover object-top" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                            {idx !== 0 && (
+                              <button type="button" onClick={() => setAsThumbnail(idx)} title="Đặt làm ảnh đại diện"
+                                className="w-7 h-7 flex items-center justify-center bg-white rounded-lg cursor-pointer">
+                                <i className="ri-star-line text-amber-500 text-xs" />
+                              </button>
+                            )}
+                            <button type="button" onClick={() => removeImage(idx)}
+                              className="w-7 h-7 flex items-center justify-center bg-white rounded-lg cursor-pointer">
+                              <i className="ri-delete-bin-line text-red-500 text-xs" />
+                            </button>
+                          </div>
+                          {idx === 0 && (
+                            <div className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">Đại diện</div>
+                          )}
+                          <div className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-1 py-0.5 rounded font-medium">
+                            {idx + 1}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
 
@@ -697,17 +725,17 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                         <p className="text-stone-600 text-sm font-medium mb-0.5">
                           {videoDragging ? 'Thả video vào đây...' : uploadingVideo ? 'Đang upload video...' : 'Kéo thả hoặc nhấn để chọn video'}
                         </p>
-                        <p className="text-stone-400 text-xs">MP4, MOV, AVI · Nhiều video cùng lúc · Tối đa 2GB/video</p>
+                        <p className="text-stone-400 text-xs">MP4, MOV, AVI · Tối đa 50MB/video</p>
                       </div>
 
                       {videoUploadProgress.length > 0 && (
                         <div className="mt-3 space-y-1.5">
                           {videoUploadProgress.map((p, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-stone-50 rounded-lg px-3 py-1.5">
-                              <i className={`text-xs ${p.status === 'uploading' ? 'ri-loader-4-line text-amber-500 animate-spin' : p.status === 'done' ? 'ri-checkbox-circle-line text-green-500' : 'ri-error-warning-line text-red-500'}`} />
+                            <div key={i} className="flex items-start gap-2 bg-stone-50 rounded-lg px-3 py-1.5">
+                              <i className={`text-xs mt-0.5 flex-shrink-0 ${p.status === 'uploading' ? 'ri-loader-4-line text-amber-500 animate-spin' : p.status === 'done' ? 'ri-checkbox-circle-line text-green-500' : 'ri-error-warning-line text-red-500'}`} />
                               <span className="text-xs text-stone-600 truncate flex-1">{p.name}</span>
-                              <span className={`text-xs font-medium ${p.status === 'done' ? 'text-green-600' : p.status === 'error' ? 'text-red-500' : 'text-amber-500'}`}>
-                                {p.status === 'uploading' ? 'Đang upload...' : p.status === 'done' ? 'Xong!' : 'Lỗi'}
+                              <span className={`text-xs font-medium whitespace-nowrap ${p.status === 'done' ? 'text-green-600' : p.status === 'error' ? 'text-red-500' : 'text-amber-500'}`}>
+                                {p.status === 'uploading' ? 'Đang upload...' : p.status === 'done' ? 'Xong!' : (p.errorMsg || 'Lỗi')}
                               </span>
                             </div>
                           ))}
