@@ -14,15 +14,22 @@ interface ExistingVideo {
   platform: string | null;
   thumbnail_url: string | null;
   embed_id: string | null;
+  type: string;
+  url: string;
 }
 
 interface PendingVideo {
   tempId: string;
   title: string;
+  type: 'embed' | 'upload';
   url: string;
-  platform: string;
-  embedId: string;
-  thumbnail: string;
+  // embed
+  platform?: string;
+  embedId?: string;
+  thumbnail?: string;
+  // upload
+  fileName?: string;
+  fileSize?: number;
 }
 
 interface VideoPreview {
@@ -54,6 +61,7 @@ const AMENITIES_LIST = ['Wi-Fi', 'Điều hòa', 'Bếp', 'Máy giặt', 'TV', '
 const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
   const { adminProfile } = useAdminAuth();
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -62,6 +70,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
   const [urlInput, setUrlInput] = useState('');
 
   // Video state
+  const [videoMode, setVideoMode] = useState<'embed' | 'upload'>('embed');
   const [existingVideos, setExistingVideos] = useState<ExistingVideo[]>([]);
   const [pendingVideos, setPendingVideos] = useState<PendingVideo[]>([]);
   const [removedVideoIds, setRemovedVideoIds] = useState<string[]>([]);
@@ -69,6 +78,9 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
   const [videoTitleInput, setVideoTitleInput] = useState('');
   const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null);
   const [videoUrlError, setVideoUrlError] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<{ name: string; status: 'uploading' | 'done' | 'error' }[]>([]);
+  const [videoDragging, setVideoDragging] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -111,8 +123,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
         is_featured: property.is_featured,
         amenities: property.amenities || [],
       });
-      // Load existing videos
-      supabase.from('media_videos').select('id, title, platform, thumbnail_url, embed_id')
+      supabase.from('media_videos').select('id, title, platform, thumbnail_url, embed_id, type, url')
         .eq('property_id', property.id)
         .then(({ data }) => {
           if (data) setExistingVideos(data as ExistingVideo[]);
@@ -144,6 +155,56 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
     setVideoTitleInput('');
     setVideoPreview(null);
     setVideoUrlError('');
+  };
+
+  const uploadVideoFiles = async (files: File[]) => {
+    const videoFiles = files.filter(f => f.type.startsWith('video/'));
+    if (!videoFiles.length) return;
+    setUploadingVideo(true);
+    setVideoUploadProgress(videoFiles.map(f => ({ name: f.name, status: 'uploading' })));
+
+    for (let i = 0; i < videoFiles.length; i++) {
+      const file = videoFiles[i];
+      const ext = file.name.split('.').pop() || 'mp4';
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const filePath = `videos/property/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(filePath, file, { upsert: false });
+
+      if (uploadError) {
+        setVideoUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: 'error' } : p));
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(filePath);
+
+      setPendingVideos(prev => [...prev, {
+        tempId: `tmp-upload-${Date.now()}-${i}`,
+        title: file.name.replace(/\.[^.]+$/, ''),
+        type: 'upload',
+        url: publicUrl,
+        fileName: file.name,
+        fileSize: file.size,
+      }]);
+
+      setVideoUploadProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: 'done' } : p));
+    }
+
+    setUploadingVideo(false);
+    setTimeout(() => setVideoUploadProgress([]), 1500);
+  };
+
+  const handleVideoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) uploadVideoFiles(Array.from(e.target.files));
+    e.target.value = '';
+  };
+
+  const handleVideoDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setVideoDragging(false);
+    uploadVideoFiles(Array.from(e.dataTransfer.files));
   };
 
   const removeExistingVideo = (id: string) => {
@@ -473,7 +534,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                     className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
                     placeholder="Dán link ảnh vào đây rồi nhấn Thêm..." />
                   <button type="button" onClick={handleAddUrl} disabled={!urlInput.trim()}
-                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40">
+                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40">
                     Thêm
                   </button>
                 </div>
@@ -503,11 +564,8 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
 
             {/* ── VIDEO SECTION ── */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-stone-700">
-                  Video căn hộ
-                  <span className="ml-2 text-xs text-stone-400 font-normal">YouTube / Vimeo</span>
-                </label>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-stone-700">Video căn hộ</label>
                 {totalVideos > 0 && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                     {totalVideos} video
@@ -515,7 +573,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                 )}
               </div>
 
-              {/* Existing + pending videos list */}
+              {/* Video list */}
               {(existingVideos.length > 0 || pendingVideos.length > 0) && (
                 <div className="space-y-2 mb-3">
                   {existingVideos.map(vid => (
@@ -530,8 +588,11 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-stone-700 truncate">{vid.title}</p>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <i className={`text-xs ${vid.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} />
-                          <span className="text-xs text-stone-400 capitalize">{vid.platform}</span>
+                          {vid.type === 'upload' ? (
+                            <><i className="ri-upload-cloud-line text-xs text-stone-400" /><span className="text-xs text-stone-400">Đã upload</span></>
+                          ) : (
+                            <><i className={`text-xs ${vid.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} /><span className="text-xs text-stone-400 capitalize">{vid.platform}</span></>
+                          )}
                         </div>
                       </div>
                       <button type="button" onClick={() => removeExistingVideo(vid.id)}
@@ -542,16 +603,18 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                   ))}
                   {pendingVideos.map(vid => (
                     <div key={vid.tempId} className="flex items-center gap-3 bg-amber-50 rounded-lg px-3 py-2.5 border border-amber-200">
-                      {vid.thumbnail ? (
+                      {vid.type === 'embed' && vid.thumbnail ? (
                         <img src={vid.thumbnail} alt={vid.title} className="w-14 h-9 object-cover rounded flex-shrink-0" />
                       ) : (
                         <div className="w-14 h-9 bg-amber-100 rounded flex-shrink-0 flex items-center justify-center">
-                          <i className="ri-video-line text-amber-500 text-sm" />
+                          <i className={`text-amber-500 text-sm ${vid.type === 'upload' ? 'ri-video-upload-line' : 'ri-video-line'}`} />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-stone-700 truncate">{vid.title}</p>
-                        <span className="text-xs text-amber-600">Chưa lưu · sẽ lưu khi submit</span>
+                        <span className="text-xs text-amber-600">
+                          {vid.type === 'upload' ? 'Đã upload · sẽ lưu khi submit' : 'Chưa lưu · sẽ lưu khi submit'}
+                        </span>
                       </div>
                       <button type="button" onClick={() => removePendingVideo(vid.tempId)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0">
@@ -562,44 +625,97 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                 </div>
               )}
 
-              {/* Add video input */}
-              <div className="border border-stone-200 rounded-xl p-4 bg-stone-50/50 space-y-3">
-                <p className="text-xs font-medium text-stone-500">Thêm video mới</p>
-                <input
-                  type="text"
-                  value={videoTitleInput}
-                  onChange={e => setVideoTitleInput(e.target.value)}
-                  placeholder="Tiêu đề video (VD: Tour 360° căn hộ view núi)"
-                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={videoUrlInput}
-                    onChange={e => handleVideoUrlChange(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                  />
-                  <button type="button" onClick={handleAddVideo}
-                    disabled={!videoPreview || !videoTitleInput.trim()}
-                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40">
-                    <span className="flex items-center gap-1.5">
-                      <i className="ri-add-line" /> Thêm
-                    </span>
+              {/* Tab switcher */}
+              <div className="border border-stone-200 rounded-xl overflow-hidden">
+                <div className="flex items-center border-b border-stone-100 bg-stone-50">
+                  <button type="button" onClick={() => setVideoMode('embed')}
+                    className={`flex-1 py-2.5 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${videoMode === 'embed' ? 'bg-white text-amber-600 border-b-2 border-amber-500' : 'text-stone-500 hover:text-stone-700'}`}>
+                    <i className="ri-youtube-line" /> Nhúng YouTube / Vimeo
+                  </button>
+                  <button type="button" onClick={() => setVideoMode('upload')}
+                    className={`flex-1 py-2.5 text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${videoMode === 'upload' ? 'bg-white text-amber-600 border-b-2 border-amber-500' : 'text-stone-500 hover:text-stone-700'}`}>
+                    <i className="ri-upload-cloud-2-line" /> Tải video lên
                   </button>
                 </div>
-                {videoPreview && (
-                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
-                    {videoPreview.thumbnail && (
-                      <img src={videoPreview.thumbnail} alt="thumb" className="w-12 h-8 object-cover rounded" />
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <i className={`text-xs ${videoPreview.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} />
-                      <span className="text-xs text-green-700 font-medium capitalize">{videoPreview.platform} · URL hợp lệ!</span>
+
+                <div className="p-4">
+                  {/* Embed mode */}
+                  {videoMode === 'embed' && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={videoTitleInput}
+                        onChange={e => setVideoTitleInput(e.target.value)}
+                        placeholder="Tiêu đề video (VD: Tour 360° căn hộ view núi)"
+                        className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={videoUrlInput}
+                          onChange={e => handleVideoUrlChange(e.target.value)}
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                        />
+                        <button type="button" onClick={handleAddVideo}
+                          disabled={!videoPreview || !videoTitleInput.trim()}
+                          className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40 flex items-center gap-1.5">
+                          <i className="ri-add-line" /> Thêm
+                        </button>
+                      </div>
+                      {videoPreview && (
+                        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                          {videoPreview.thumbnail && (
+                            <img src={videoPreview.thumbnail} alt="thumb" className="w-12 h-8 object-cover rounded" />
+                          )}
+                          <div className="flex items-center gap-1.5">
+                            <i className={`text-xs ${videoPreview.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} />
+                            <span className="text-xs text-green-700 font-medium capitalize">{videoPreview.platform} · URL hợp lệ!</span>
+                          </div>
+                        </div>
+                      )}
+                      {videoUrlError && <p className="text-red-500 text-xs">{videoUrlError}</p>}
                     </div>
-                  </div>
-                )}
-                {videoUrlError && <p className="text-red-500 text-xs">{videoUrlError}</p>}
+                  )}
+
+                  {/* Upload mode */}
+                  {videoMode === 'upload' && (
+                    <div>
+                      <input ref={videoInputRef} type="file" accept="video/*" multiple className="hidden" onChange={handleVideoFileChange} />
+                      <div
+                        onDragOver={e => { e.preventDefault(); setVideoDragging(true); }}
+                        onDragLeave={() => setVideoDragging(false)}
+                        onDrop={handleVideoDrop}
+                        onClick={() => !uploadingVideo && videoInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${videoDragging ? 'border-amber-400 bg-amber-50' : 'border-stone-200 hover:border-amber-300 hover:bg-stone-50'} ${uploadingVideo ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        <div className="w-10 h-10 flex items-center justify-center bg-amber-50 rounded-xl mx-auto mb-2">
+                          {uploadingVideo
+                            ? <i className="ri-loader-4-line text-amber-500 text-xl animate-spin" />
+                            : <i className="ri-video-upload-line text-amber-500 text-xl" />}
+                        </div>
+                        <p className="text-stone-600 text-sm font-medium mb-0.5">
+                          {videoDragging ? 'Thả video vào đây...' : uploadingVideo ? 'Đang upload video...' : 'Kéo thả hoặc nhấn để chọn video'}
+                        </p>
+                        <p className="text-stone-400 text-xs">MP4, MOV, AVI · Nhiều video cùng lúc · Tối đa 2GB/video</p>
+                      </div>
+
+                      {videoUploadProgress.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          {videoUploadProgress.map((p, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-stone-50 rounded-lg px-3 py-1.5">
+                              <i className={`text-xs ${p.status === 'uploading' ? 'ri-loader-4-line text-amber-500 animate-spin' : p.status === 'done' ? 'ri-checkbox-circle-line text-green-500' : 'ri-error-warning-line text-red-500'}`} />
+                              <span className="text-xs text-stone-600 truncate flex-1">{p.name}</span>
+                              <span className={`text-xs font-medium ${p.status === 'done' ? 'text-green-600' : p.status === 'error' ? 'text-red-500' : 'text-amber-500'}`}>
+                                {p.status === 'uploading' ? 'Đang upload...' : p.status === 'done' ? 'Xong!' : 'Lỗi'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -640,11 +756,11 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
               className="px-4 py-2 border border-stone-200 rounded-lg text-sm text-stone-600 hover:bg-stone-50 transition-all cursor-pointer whitespace-nowrap">
               Hủy
             </button>
-            <button type="submit" disabled={submitting || uploadingImages}
+            <button type="submit" disabled={submitting || uploadingImages || uploadingVideo}
               className={`px-5 py-2 text-white rounded-lg text-sm font-semibold transition-all cursor-pointer whitespace-nowrap disabled:opacity-60 ${
                 isSale ? 'bg-rose-500 hover:bg-rose-600' : 'bg-amber-500 hover:bg-amber-600'
               }`}>
-              {submitting ? 'Đang lưu...' : uploadingImages ? 'Chờ upload ảnh xong...' : property ? 'Cập nhật' : 'Thêm mới'}
+              {submitting ? 'Đang lưu...' : uploadingImages ? 'Chờ upload ảnh xong...' : uploadingVideo ? 'Chờ upload video xong...' : property ? 'Cập nhật' : 'Thêm mới'}
             </button>
           </div>
         </form>
