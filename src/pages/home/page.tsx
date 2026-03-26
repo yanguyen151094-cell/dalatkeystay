@@ -70,9 +70,9 @@ export default function Home() {
   useEffect(() => {
     const load = async () => {
       const [r, h, a] = await Promise.all([
-        fetchRentalProperties(9),
-        fetchHomestayProperties(9),
-        fetchSaleProperties(9),
+        fetchRentalProperties(10000),
+        fetchHomestayProperties(10000),
+        fetchSaleProperties(10000),
       ]);
       setRentals(r);
       setHomestays(h);
