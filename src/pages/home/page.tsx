@@ -4,6 +4,8 @@ import Navbar from '../../components/feature/Navbar';
 import Footer from '../../components/feature/Footer';
 import SearchBar from '../../components/base/SearchBar';
 import PropertyCard from '../../components/base/PropertyCard';
+import VideoReviewStrip from './components/VideoReviewStrip';
+import TestimonialsSection from './components/TestimonialsSection';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchRentalProperties, fetchHomestayProperties, fetchSaleProperties } from '../../lib/propertyUtils';
 import { useSEO } from '../../hooks/useSEO';
@@ -152,6 +154,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Video Review Strip */}
+      <VideoReviewStrip />
 
       {/* Featured Rentals */}
       <section className="py-16 px-6 max-w-7xl mx-auto">
@@ -330,6 +335,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Testimonials */}
+      <TestimonialsSection />
 
       {/* CTA */}
       <section className="bg-amber-700 py-16 px-6">

@@ -179,7 +179,7 @@ export default function ChatWidget() {
       const data = await res.json();
       return data.reply ?? 'Xin lỗi, mình không thể trả lời lúc này. Vui lòng thử lại!';
     } catch {
-      return 'Mình đang gặp sự cố kỹ thuật. Bạn thử lại hoặc gọi hotline 0263 382 2888 nhé!';
+      return 'Mình đang gặp sự cố kỹ thuật. Bạn thử lại hoặc gọi hotline 0982 947 645 nhé!';
     }
   };
 
@@ -235,7 +235,7 @@ export default function ChatWidget() {
       }
     } catch {
       setIsTyping(false);
-      addBotTextMessage('Xin lỗi, mình gặp sự cố. Bạn thử lại hoặc gọi hotline 0263 382 2888 nhé!');
+      addBotTextMessage('Xin lỗi, mình gặp sự cố. Bạn thử lại hoặc gọi hotline 0982 947 645 nhé!');
     }
   };
 
@@ -263,7 +263,7 @@ export default function ChatWidget() {
     setLeadSent(true);
     setShowLeadForm(false);
     addBotTextMessage(
-      `Cảm ơn bạn ${leadForm.name}! ✅\n\nMình đã chuyển thông tin cho nhân viên tư vấn rồi. Bạn sẽ nhận cuộc gọi qua số ${leadForm.phone} trong thời gian sớm nhất!\n\n📞 Hotline hỗ trợ ngay: 0263 382 2888`,
+      `Cảm ơn bạn ${leadForm.name}! ✅\n\nMình đã chuyển thông tin cho nhân viên tư vấn rồi. Bạn sẽ nhận cuộc gọi qua số ${leadForm.phone} trong thời gian sớm nhất!\n\n📞 Hotline hỗ trợ ngay: 0982 947 645`,
     );
   };
 

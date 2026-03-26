@@ -282,7 +282,7 @@ export default function ApartmentSales() {
               <p className="text-stone-400 text-sm">Đội ngũ chuyên gia của chúng tôi sẵn sàng hỗ trợ bạn 24/7.</p>
             </div>
             <div className="flex gap-3 flex-shrink-0">
-              <a href="tel:02633822888" className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-2">
+              <a href="tel:0982947645" className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-2">
                 <i className="ri-phone-line" /> Gọi ngay
               </a>
               <a href="/contact" className="px-5 py-2.5 border border-stone-600 text-stone-300 text-sm font-semibold rounded-xl hover:bg-stone-700 transition-colors cursor-pointer whitespace-nowrap inline-flex items-center gap-2">

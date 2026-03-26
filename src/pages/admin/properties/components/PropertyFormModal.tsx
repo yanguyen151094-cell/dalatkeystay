@@ -8,6 +8,47 @@ interface Props {
   onSaved: () => void;
 }
 
+interface ExistingVideo {
+  id: string;
+  title: string;
+  platform: string | null;
+  thumbnail_url: string | null;
+  embed_id: string | null;
+}
+
+interface PendingVideo {
+  tempId: string;
+  title: string;
+  url: string;
+  platform: string;
+  embedId: string;
+  thumbnail: string;
+}
+
+interface VideoPreview {
+  platform: string;
+  embedId: string;
+  thumbnail: string;
+}
+
+const extractYouTubeId = (url: string): string | null => {
+  const match = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/);
+  return match ? match[1] : null;
+};
+
+const extractVimeoId = (url: string): string | null => {
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return match ? match[1] : null;
+};
+
+const detectPlatform = (url: string): VideoPreview | null => {
+  const ytId = extractYouTubeId(url);
+  if (ytId) return { platform: 'youtube', embedId: ytId, thumbnail: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` };
+  const viId = extractVimeoId(url);
+  if (viId) return { platform: 'vimeo', embedId: viId, thumbnail: '' };
+  return null;
+};
+
 const AMENITIES_LIST = ['Wi-Fi', 'Điều hòa', 'Bếp', 'Máy giặt', 'TV', 'Bãi đỗ xe', 'Hồ bơi', 'Ban công', 'View núi', 'View thành phố', 'Thang máy', 'Bảo vệ 24/7', 'Gym', 'Hầm xe', 'Sân vườn', 'Lò sưởi'];
 
 const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
@@ -19,6 +60,15 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
   const [uploadProgress, setUploadProgress] = useState<{ name: string; status: 'uploading' | 'done' | 'error' }[]>([]);
   const [storageError, setStorageError] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+
+  // Video state
+  const [existingVideos, setExistingVideos] = useState<ExistingVideo[]>([]);
+  const [pendingVideos, setPendingVideos] = useState<PendingVideo[]>([]);
+  const [removedVideoIds, setRemovedVideoIds] = useState<string[]>([]);
+  const [videoUrlInput, setVideoUrlInput] = useState('');
+  const [videoTitleInput, setVideoTitleInput] = useState('');
+  const [videoPreview, setVideoPreview] = useState<VideoPreview | null>(null);
+  const [videoUrlError, setVideoUrlError] = useState('');
 
   const [form, setForm] = useState({
     title: '',
@@ -61,8 +111,49 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
         is_featured: property.is_featured,
         amenities: property.amenities || [],
       });
+      // Load existing videos
+      supabase.from('media_videos').select('id, title, platform, thumbnail_url, embed_id')
+        .eq('property_id', property.id)
+        .then(({ data }) => {
+          if (data) setExistingVideos(data as ExistingVideo[]);
+        });
     }
   }, [property]);
+
+  const handleVideoUrlChange = (val: string) => {
+    setVideoUrlInput(val);
+    setVideoUrlError('');
+    if (val.trim()) {
+      const info = detectPlatform(val);
+      setVideoPreview(info);
+    } else {
+      setVideoPreview(null);
+    }
+  };
+
+  const handleAddVideo = () => {
+    if (!videoTitleInput.trim()) { setVideoUrlError('Nhập tiêu đề video'); return; }
+    if (!videoPreview) { setVideoUrlError('URL không hợp lệ. Chỉ hỗ trợ YouTube và Vimeo.'); return; }
+    setPendingVideos(prev => [...prev, {
+      tempId: `tmp-${Date.now()}`,
+      title: videoTitleInput.trim(),
+      url: videoUrlInput.trim(),
+      ...videoPreview,
+    }]);
+    setVideoUrlInput('');
+    setVideoTitleInput('');
+    setVideoPreview(null);
+    setVideoUrlError('');
+  };
+
+  const removeExistingVideo = (id: string) => {
+    setRemovedVideoIds(prev => [...prev, id]);
+    setExistingVideos(prev => prev.filter(v => v.id !== id));
+  };
+
+  const removePendingVideo = (tempId: string) => {
+    setPendingVideos(prev => prev.filter(v => v.tempId !== tempId));
+  };
 
   const toggleAmenity = (a: string) => {
     setForm(f => ({
@@ -161,16 +252,44 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
       updated_at: new Date().toISOString(),
     };
 
+    let savedPropertyId = property?.id;
+
     if (property) {
       await supabase.from('properties').update(payload).eq('id', property.id);
     } else {
-      await supabase.from('properties').insert({ ...payload, created_by: adminProfile?.id });
+      const { data: newProp } = await supabase.from('properties')
+        .insert({ ...payload, created_by: adminProfile?.id })
+        .select('id')
+        .maybeSingle();
+      savedPropertyId = newProp?.id;
     }
+
+    // Handle video changes
+    if (removedVideoIds.length > 0) {
+      await supabase.from('media_videos').delete().in('id', removedVideoIds);
+    }
+    if (pendingVideos.length > 0 && savedPropertyId) {
+      await supabase.from('media_videos').insert(
+        pendingVideos.map(v => ({
+          title: v.title,
+          type: 'embed',
+          url: v.url,
+          embed_id: v.embedId,
+          platform: v.platform,
+          thumbnail_url: v.thumbnail || null,
+          category: 'property',
+          property_id: savedPropertyId,
+          uploaded_by: adminProfile?.id || null,
+        }))
+      );
+    }
+
     setSubmitting(false);
     onSaved();
   };
 
   const isSale = form.listing_type === 'sale';
+  const totalVideos = existingVideos.length + pendingVideos.length;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -302,7 +421,6 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                 <span className="ml-2 text-xs text-stone-400 font-normal">Ảnh đầu tiên sẽ là ảnh đại diện</span>
               </label>
 
-              {/* Uploaded images grid */}
               {form.images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {form.images.map((url, idx) => (
@@ -310,8 +428,7 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                       <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover object-top" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                         {idx !== 0 && (
-                          <button type="button" onClick={() => setAsThumbnail(idx)}
-                            title="Đặt làm ảnh đại diện"
+                          <button type="button" onClick={() => setAsThumbnail(idx)} title="Đặt làm ảnh đại diện"
                             className="w-7 h-7 flex items-center justify-center bg-white rounded-lg cursor-pointer">
                             <i className="ri-star-line text-amber-500 text-xs" />
                           </button>
@@ -322,16 +439,13 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                         </button>
                       </div>
                       {idx === 0 && (
-                        <div className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                          Đại diện
-                        </div>
+                        <div className="absolute top-1 left-1 bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">Đại diện</div>
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Upload area */}
               <div
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
@@ -351,24 +465,15 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                 <p className="text-stone-400 text-xs">PNG, JPG, WEBP · Nhiều ảnh cùng lúc · Tối đa 10MB/ảnh</p>
               </div>
 
-              {/* URL input alternative */}
               <div className="mt-3">
                 <p className="text-xs text-stone-400 text-center mb-2">— hoặc thêm bằng link ảnh —</p>
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={urlInput}
-                    onChange={e => setUrlInput(e.target.value)}
+                  <input type="text" value={urlInput} onChange={e => setUrlInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddUrl(); } }}
                     className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-                    placeholder="Dán link ảnh vào đây rồi nhấn Thêm..."
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddUrl}
-                    disabled={!urlInput.trim()}
-                    className="px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40"
-                  >
+                    placeholder="Dán link ảnh vào đây rồi nhấn Thêm..." />
+                  <button type="button" onClick={handleAddUrl} disabled={!urlInput.trim()}
+                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40">
                     Thêm
                   </button>
                 </div>
@@ -394,6 +499,108 @@ const PropertyFormModal = ({ property, onClose, onSaved }: Props) => {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* ── VIDEO SECTION ── */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-stone-700">
+                  Video căn hộ
+                  <span className="ml-2 text-xs text-stone-400 font-normal">YouTube / Vimeo</span>
+                </label>
+                {totalVideos > 0 && (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    {totalVideos} video
+                  </span>
+                )}
+              </div>
+
+              {/* Existing + pending videos list */}
+              {(existingVideos.length > 0 || pendingVideos.length > 0) && (
+                <div className="space-y-2 mb-3">
+                  {existingVideos.map(vid => (
+                    <div key={vid.id} className="flex items-center gap-3 bg-stone-50 rounded-lg px-3 py-2.5 border border-stone-100">
+                      {vid.thumbnail_url ? (
+                        <img src={vid.thumbnail_url} alt={vid.title} className="w-14 h-9 object-cover rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-14 h-9 bg-stone-200 rounded flex-shrink-0 flex items-center justify-center">
+                          <i className="ri-video-line text-stone-400 text-sm" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-stone-700 truncate">{vid.title}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <i className={`text-xs ${vid.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} />
+                          <span className="text-xs text-stone-400 capitalize">{vid.platform}</span>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => removeExistingVideo(vid.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0">
+                        <i className="ri-close-line text-sm" />
+                      </button>
+                    </div>
+                  ))}
+                  {pendingVideos.map(vid => (
+                    <div key={vid.tempId} className="flex items-center gap-3 bg-amber-50 rounded-lg px-3 py-2.5 border border-amber-200">
+                      {vid.thumbnail ? (
+                        <img src={vid.thumbnail} alt={vid.title} className="w-14 h-9 object-cover rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-14 h-9 bg-amber-100 rounded flex-shrink-0 flex items-center justify-center">
+                          <i className="ri-video-line text-amber-500 text-sm" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-stone-700 truncate">{vid.title}</p>
+                        <span className="text-xs text-amber-600">Chưa lưu · sẽ lưu khi submit</span>
+                      </div>
+                      <button type="button" onClick={() => removePendingVideo(vid.tempId)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0">
+                        <i className="ri-close-line text-sm" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add video input */}
+              <div className="border border-stone-200 rounded-xl p-4 bg-stone-50/50 space-y-3">
+                <p className="text-xs font-medium text-stone-500">Thêm video mới</p>
+                <input
+                  type="text"
+                  value={videoTitleInput}
+                  onChange={e => setVideoTitleInput(e.target.value)}
+                  placeholder="Tiêu đề video (VD: Tour 360° căn hộ view núi)"
+                  className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={videoUrlInput}
+                    onChange={e => handleVideoUrlChange(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                  />
+                  <button type="button" onClick={handleAddVideo}
+                    disabled={!videoPreview || !videoTitleInput.trim()}
+                    className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-40">
+                    <span className="flex items-center gap-1.5">
+                      <i className="ri-add-line" /> Thêm
+                    </span>
+                  </button>
+                </div>
+                {videoPreview && (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                    {videoPreview.thumbnail && (
+                      <img src={videoPreview.thumbnail} alt="thumb" className="w-12 h-8 object-cover rounded" />
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <i className={`text-xs ${videoPreview.platform === 'youtube' ? 'ri-youtube-fill text-red-500' : 'ri-vimeo-fill text-teal-500'}`} />
+                      <span className="text-xs text-green-700 font-medium capitalize">{videoPreview.platform} · URL hợp lệ!</span>
+                    </div>
+                  </div>
+                )}
+                {videoUrlError && <p className="text-red-500 text-xs">{videoUrlError}</p>}
+              </div>
             </div>
 
             <div>

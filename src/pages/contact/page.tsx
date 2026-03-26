@@ -7,31 +7,31 @@ const contactInfo = [
   {
     icon: 'ri-map-pin-2-line',
     title: 'Địa chỉ văn phòng',
-    detail: '4 Nguyễn Thị Minh Khai, Phường 1, Đà Lạt, Lâm Đồng',
-    sub: 'Làm việc: Thứ 2 – Thứ 7',
+    detail: '32 hẻm 6 Mai Xuân Thưởng, Phường 8, Đà Lạt',
+    sub: 'Làm việc: Tất cả các ngày trong tuần',
     color: 'bg-emerald-50 text-emerald-600',
   },
   {
     icon: 'ri-phone-line',
     title: 'Hotline',
-    detail: '0263 382 2888',
-    sub: 'Hỗ trợ 8:00 – 20:00 hàng ngày',
+    detail: '0982 947 645',
+    sub: 'Hỗ trợ 00:00 – 23:59 mỗi ngày',
     color: 'bg-amber-50 text-amber-600',
-    href: 'tel:02633822888',
+    href: 'tel:0982947645',
   },
   {
     icon: 'ri-mail-line',
     title: 'Email',
-    detail: 'info@dalathome.vn',
+    detail: 'yanguyen151094@gmail.com',
     sub: 'Phản hồi trong vòng 24h',
     color: 'bg-rose-50 text-rose-600',
-    href: 'mailto:info@dalathome.vn',
+    href: 'mailto:yanguyen151094@gmail.com',
   },
   {
     icon: 'ri-time-line',
     title: 'Giờ làm việc',
-    detail: '8:00 – 18:00',
-    sub: 'Thứ 2 – Thứ 7 (Chủ nhật nghỉ)',
+    detail: '00:00 – 23:59',
+    sub: 'Tất cả các ngày trong tuần',
     color: 'bg-stone-100 text-stone-600',
   },
 ];
@@ -45,7 +45,7 @@ export default function Contact() {
 
   useSEO({
     title: 'Liên Hệ Key Stay Đà Lạt – Tư Vấn Cho Thuê Nhà & Homestay Đà Lạt',
-    description: 'Liên hệ Key Stay Đà Lạt để được tư vấn thuê nhà, homestay và căn hộ tại Đà Lạt. Hotline: 0982947645 – hỗ trợ 8:00–20:00 hàng ngày.',
+    description: 'Liên hệ Key Stay Đà Lạt để được tư vấn thuê nhà, homestay và căn hộ tại Đà Lạt. Hotline: 0982947645 – hỗ trợ 00:00–23:59 mỗi ngày.',
     keywords: 'liên hệ Key Stay Đà Lạt, tư vấn thuê nhà Đà Lạt, hotline Key Stay, booking Đà Lạt',
     canonical: '/contact',
     structuredData: [
@@ -68,10 +68,10 @@ export default function Contact() {
         name: 'Key Stay Đà Lạt',
         url: 'https://www.dalatkeystay.vn',
         telephone: '+84982947645',
-        email: 'info@dalatkeystay.vn',
+        email: 'yanguyen151094@gmail.com',
         address: {
           '@type': 'PostalAddress',
-          streetAddress: '4 Nguyễn Thị Minh Khai, Phường 1',
+          streetAddress: '32 hẻm 6 Mai Xuân Thưởng, Phường 8',
           addressLocality: 'Đà Lạt',
           addressRegion: 'Lâm Đồng',
           postalCode: '670000',
@@ -85,9 +85,9 @@ export default function Contact() {
         openingHoursSpecification: [
           {
             '@type': 'OpeningHoursSpecification',
-            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            opens: '08:00',
-            closes: '20:00',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            opens: '00:00',
+            closes: '23:59',
           },
         ],
         hasMap: 'https://www.google.com/maps/place/Phường+1,+Đà+Lạt',

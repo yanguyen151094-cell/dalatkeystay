@@ -21,6 +21,8 @@ import AdminContent from "../pages/admin/content/page";
 import AdminMedia from "../pages/admin/media/page";
 import AdminRevenue from "../pages/admin/revenue/page";
 import AdminBlog from "../pages/admin/blog/page";
+import AdminReview from "../pages/admin/review/page";
+import ReviewPage from "../pages/review/page";
 import ProtectedAdminRoute from "../pages/admin/components/ProtectedAdminRoute";
 
 const routes: RouteObject[] = [
@@ -34,6 +36,7 @@ const routes: RouteObject[] = [
   { path: "/faq", element: <FAQPage /> },
   { path: "/blog", element: <BlogPage /> },
   { path: "/blog/:slug", element: <BlogDetailPage /> },
+  { path: "/review-da-lat", element: <ReviewPage /> },
   // Admin routes
   { path: "/admin/login", element: <AdminLogin /> },
   { path: "/admin/register", element: <AdminRegister /> },
@@ -106,6 +109,14 @@ const routes: RouteObject[] = [
     element: (
       <ProtectedAdminRoute>
         <AdminRevenue />
+      </ProtectedAdminRoute>
+    ),
+  },
+  {
+    path: "/admin/review",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminReview />
       </ProtectedAdminRoute>
     ),
   },

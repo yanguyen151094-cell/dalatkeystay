@@ -85,25 +85,25 @@ export default function Footer() {
                 <div className="w-4 h-4 flex items-center justify-center mt-0.5">
                   <i className="ri-map-pin-line text-amber-400"></i>
                 </div>
-                <span>4 Nguyễn Thị Minh Khai, Phường 1, Đà Lạt, Lâm Đồng</span>
+                <span>32 hẻm 6 Mai Xuân Thưởng, Phường 8, Đà Lạt</span>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-phone-line text-amber-400"></i>
                 </div>
-                <a href="tel:02633822888" className="hover:text-amber-400 transition-colors">0263 382 2888</a>
+                <a href="tel:0982947645" className="hover:text-amber-400 transition-colors">0982 947 645</a>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-mail-line text-amber-400"></i>
                 </div>
-                <a href="mailto:info@dalatkeystay.vn" className="hover:text-amber-400 transition-colors">info@dalatkeystay.vn</a>
+                <a href="mailto:yanguyen151094@gmail.com" className="hover:text-amber-400 transition-colors">yanguyen151094@gmail.com</a>
               </li>
               <li className="flex items-center gap-2 text-stone-400 text-sm">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className="ri-time-line text-amber-400"></i>
                 </div>
-                <span>8:00 – 18:00, Thứ 2 – Thứ 7</span>
+                <span>00:00 – 23:59, Tất cả các ngày</span>
               </li>
             </ul>
           </div>

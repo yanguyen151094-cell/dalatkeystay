@@ -32,21 +32,28 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   adminProfileRef.current = adminProfile;
 
   const fetchAdminProfile = async (userId: string): Promise<AdminProfile | null> => {
-    const query = supabase
-      .from('admin_profiles')
-      .select('*')
-      .eq('id', userId)
-      .eq('is_active', true)
-      .maybeSingle();
+    try {
+      const query = supabase
+        .from('admin_profiles')
+        .select('*')
+        .eq('id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    // Throw on timeout so caller can distinguish "slow server" vs "no record"
-    const { data, error } = await withTimeout(query, 20000, 'PROFILE_TIMEOUT');
+      const { data, error } = await withTimeout(query, 20000, 'PROFILE_TIMEOUT');
 
-    if (error) {
-      console.error('fetchAdminProfile error:', error.message);
+      if (error) {
+        console.error('fetchAdminProfile error:', error.message);
+        return null;
+      }
+      return data as AdminProfile | null;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn('fetchAdminProfile caught:', msg);
+      // Re-throw PROFILE_TIMEOUT so signIn() can handle it separately
+      if (msg === 'PROFILE_TIMEOUT') throw e;
       return null;
     }
-    return data as AdminProfile | null;
   };
 
   useEffect(() => {
@@ -90,8 +97,12 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === 'SIGNED_IN') {
         setSession(s);
         if (s?.user && !adminProfileRef.current) {
-          const profile = await fetchAdminProfile(s.user.id);
-          if (!cancelled) setAdminProfile(profile);
+          try {
+            const profile = await fetchAdminProfile(s.user.id);
+            if (!cancelled) setAdminProfile(profile);
+          } catch (e) {
+            console.warn('onAuthStateChange fetchAdminProfile error:', e);
+          }
         }
       }
     });
