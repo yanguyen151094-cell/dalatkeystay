@@ -6,6 +6,7 @@ import SearchBar from '../../components/base/SearchBar';
 import PropertyCard from '../../components/base/PropertyCard';
 import VideoReviewStrip from './components/VideoReviewStrip';
 import TestimonialsSection from './components/TestimonialsSection';
+import CommunitySection from './components/CommunitySection';
 import type { UIProperty } from '../../lib/propertyUtils';
 import { fetchRentalProperties, fetchHomestayProperties, fetchSaleProperties } from '../../lib/propertyUtils';
 import { useSEO } from '../../hooks/useSEO';
@@ -338,6 +339,9 @@ export default function Home() {
 
       {/* Testimonials */}
       <TestimonialsSection />
+
+      {/* Community */}
+      <CommunitySection />
 
       {/* CTA */}
       <section className="bg-amber-700 py-16 px-6">

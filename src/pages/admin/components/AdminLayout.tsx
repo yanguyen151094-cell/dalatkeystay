@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { path: '/admin/blog', icon: 'ri-article-line', label: 'Quản lý Blog' },
   { path: '/admin/media', icon: 'ri-image-2-line', label: 'Hình ảnh & Video' },
   { path: '/admin/review', icon: 'ri-play-circle-line', label: 'Review Đà Lạt' },
+  { path: '/admin/community', icon: 'ri-community-line', label: 'Cộng đồng' },
   { path: '/admin/revenue', icon: 'ri-line-chart-line', label: 'Doanh thu' },
   { path: '/admin/content', icon: 'ri-edit-2-line', label: 'Nội dung website' },
   { path: '/admin/accounts', icon: 'ri-shield-user-line', label: 'Tài khoản Admin', superAdminOnly: true },

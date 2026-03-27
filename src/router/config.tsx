@@ -22,6 +22,7 @@ import AdminMedia from "../pages/admin/media/page";
 import AdminRevenue from "../pages/admin/revenue/page";
 import AdminBlog from "../pages/admin/blog/page";
 import AdminReview from "../pages/admin/review/page";
+import AdminCommunity from "../pages/admin/community/page";
 import ReviewPage from "../pages/review/page";
 import ProtectedAdminRoute from "../pages/admin/components/ProtectedAdminRoute";
 
@@ -117,6 +118,14 @@ const routes: RouteObject[] = [
     element: (
       <ProtectedAdminRoute>
         <AdminReview />
+      </ProtectedAdminRoute>
+    ),
+  },
+  {
+    path: "/admin/community",
+    element: (
+      <ProtectedAdminRoute>
+        <AdminCommunity />
       </ProtectedAdminRoute>
     ),
   },
