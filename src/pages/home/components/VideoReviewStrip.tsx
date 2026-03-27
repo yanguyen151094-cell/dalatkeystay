@@ -66,23 +66,30 @@ function VideoPlayerModal({ video, onClose }: VideoPlayerModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-50 bg-black flex flex-col"
       onClick={onClose}
     >
+      {/* Top bar */}
       <div
-        className="relative w-full max-w-3xl mx-4"
-        style={{ aspectRatio: '16/9' }}
+        className="flex items-center justify-between px-4 py-3 flex-shrink-0 bg-black/60 backdrop-blur-sm"
         onClick={(e) => e.stopPropagation()}
       >
-        {renderPlayer()}
+        <p className="text-white/80 text-sm truncate flex-1 pr-4 font-medium">{video.title}</p>
         <button
           onClick={onClose}
-          className="absolute -top-10 right-0 w-8 h-8 flex items-center justify-center text-white/80 hover:text-white cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center bg-white/15 hover:bg-white/30 rounded-full text-white transition-colors cursor-pointer flex-shrink-0"
         >
-          <i className="ri-close-line text-2xl"></i>
+          <i className="ri-close-line text-xl"></i>
         </button>
-        <div className="absolute -bottom-10 left-0 right-0 text-center">
-          <p className="text-white/80 text-sm truncate px-4">{video.title}</p>
+      </div>
+
+      {/* Video content – fills remaining height */}
+      <div
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-full h-full">
+          {renderPlayer()}
         </div>
       </div>
     </div>

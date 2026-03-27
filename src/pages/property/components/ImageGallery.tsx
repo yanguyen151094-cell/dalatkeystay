@@ -188,12 +188,12 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
           </button>
 
           {/* Main image */}
-          <div className="w-full max-w-4xl px-16 md:px-24 flex items-center justify-center" style={{ maxHeight: '75vh' }}>
+          <div className="w-full flex items-center justify-center px-12 md:px-20" style={{ maxHeight: '78vh' }}>
             <img
               src={images[currentIndex]}
               alt={`${title} - ảnh ${currentIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-xl"
-              style={{ maxHeight: '72vh' }}
+              className="max-w-full object-contain rounded-lg"
+              style={{ maxHeight: '78vh', maxWidth: '100%' }}
             />
           </div>
 
